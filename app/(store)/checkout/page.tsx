@@ -1,0 +1,295 @@
+"use client";
+
+import { useCart } from "@/components/CartProvider";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import { 
+  ShoppingBag, 
+  MapPin, 
+  Phone, 
+  User, 
+  CheckCircle, 
+  ArrowRight,
+  Truck,
+  CreditCard,
+  ChevronLeft,
+  AlertCircle,
+  Loader2
+} from "lucide-react";
+import Link from "next/link";
+
+export default function CheckoutPage() {
+  const { items, totalPrice, clearCart, totalItems } = useCart();
+  const [cities, setCities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
+
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    city_id: "",
+    address: "",
+  });
+
+  useEffect(() => {
+    async function fetchCities() {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('shipping_cities')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      
+      if (data) setCities(data);
+      setLoading(false);
+    }
+    fetchCities();
+  }, []);
+
+  const selectedCity = cities.find(c => c.id === formData.city_id);
+  const shippingFee = selectedCity ? selectedCity.shipping_fee : 0;
+  const grandTotal = totalPrice + shippingFee;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (totalItems === 0) return;
+    
+    setSubmitting(true);
+    setError("");
+    const supabase = createClient();
+
+    try {
+      // 1. Create order
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          customer_name: formData.name,
+          phone_number: formData.phone,
+          city: selectedCity.name,
+          address: formData.address,
+          total_amount: grandTotal,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // 2. Create order items
+      const orderItems = items.map(item => ({
+        order_id: order.id,
+        product_id: item.id,
+        quantity: item.quantity,
+        price_at_time_of_purchase: item.price
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
+      // 3. Success
+      setSuccess(true);
+      clearCart();
+    } catch (err: any) {
+      console.error(err);
+      setError("حدث خطأ أثناء إتمام الطلب. يرجى المحاولة مرة أخرى.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background animate-fade-in">
+        <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-8 animate-bounce">
+          <CheckCircle size={48} className="text-green-600" />
+        </div>
+        <h1 className="text-3xl md:text-5xl font-bold text-foreground font-snaga mb-4">شكراً لك! تم استلام طلبك</h1>
+        <p className="text-gray-500 mb-10 max-w-sm text-center leading-relaxed">
+          سنقوم بالتواصل معك قريباً عبر الهاتف لتأكيد مواعيد التوصيل. رقم طلبك يحتاج للمتابعة من لوحة الإدارة.
+        </p>
+        <Link 
+          href="/" 
+          className="bg-primary hover:bg-primary-dark text-white px-12 py-5 rounded-3xl font-bold text-xl shadow-xl shadow-primary/20 transition-all flex items-center gap-3"
+        >
+          العودة للرئيسية
+          <ArrowRight />
+        </Link>
+      </div>
+    );
+  }
+
+  if (totalItems === 0 && !submitting) {
+    router.push('/cart');
+    return null;
+  }
+
+  return (
+    <div className="min-h-screen bg-background pb-32">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32">
+        <div className="mb-12 space-y-4">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-foreground font-snaga animate-fade-in-up">بيانات الشحن</h1>
+          <p className="text-gray-500 animate-fade-in-up">يرجى تعبئة البيانات بدقة لضمان وصول السرير في أسرع وقت.</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
+          {/* Form Side */}
+          <div className="lg:col-span-2 space-y-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+            <div className="bg-white p-8 md:p-12 rounded-[3.5rem] border border-gray-100 shadow-sm flex flex-col space-y-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-gray-400 flex items-center gap-2 pr-2">
+                    <User size={16} /> الاسم الكامل
+                  </label>
+                  <input 
+                    required
+                    type="text"
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    placeholder="مثال: أحمد محمد"
+                    className="w-full px-6 py-4 bg-background border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all font-bold text-foreground"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-gray-400 flex items-center gap-2 pr-2" dir="ltr">
+                    <Phone size={16} /> رقم الهاتف
+                  </label>
+                  <input 
+                    required
+                    type="tel"
+                    value={formData.phone}
+                    onChange={e => setFormData({...formData, phone: e.target.value})}
+                    placeholder="091XXXXXXX"
+                    className="w-full px-6 py-4 bg-background border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all font-bold text-foreground text-right"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-gray-400 flex items-center gap-2 pr-2">
+                    <MapPin size={16} /> المدينة
+                  </label>
+                  <select 
+                    required
+                    value={formData.city_id}
+                    onChange={e => setFormData({...formData, city_id: e.target.value})}
+                    className="w-full px-6 py-4 bg-background border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all font-bold text-foreground appearance-none cursor-pointer"
+                  >
+                    <option value="">اختر المدينة</option>
+                    {cities.map(city => (
+                      <option key={city.id} value={city.id}>{city.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-gray-400 flex items-center gap-2 pr-2">
+                    <Truck size={16} /> العنوان بالتفصيل
+                  </label>
+                  <input 
+                    required
+                    type="text"
+                    value={formData.address}
+                    onChange={e => setFormData({...formData, address: e.target.value})}
+                    placeholder="الحي، اسم الشارع، معلم بارز..."
+                    className="w-full px-6 py-4 bg-background border border-gray-100 rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all font-bold text-foreground"
+                  />
+                </div>
+              </div>
+
+              {/* Payment Info Box */}
+              <div className="bg-background/50 p-8 rounded-3xl border border-dashed border-gray-200 space-y-4">
+                <h3 className="font-bold text-foreground flex items-center gap-2">
+                  <CreditCard size={20} className="text-secondary" />
+                  طريقة الدفع
+                </h3>
+                <div className="flex items-center gap-4 bg-white p-6 rounded-2xl border border-primary/20 shadow-sm shadow-primary/5">
+                  <div className="w-6 h-6 rounded-full border-4 border-primary flex-shrink-0" />
+                  <div>
+                    <p className="font-bold text-foreground">الدفع عند الاستلام (CASH)</p>
+                    <p className="text-xs text-gray-400">تدفع المبلغ نقداً لمندوب التوصيل عند استلام الطلب.</p>
+                  </div>
+                </div>
+              </div>
+
+              {error && (
+                <div className="bg-red-50 text-red-600 p-4 rounded-2xl flex items-center gap-3 border border-red-100 animate-shake">
+                  <AlertCircle size={20} />
+                  <span className="text-sm font-bold">{error}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Order Summary Side */}
+          <div className="lg:col-span-1 space-y-8 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+            <div className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-2xl shadow-primary/5 space-y-8">
+              <h2 className="text-2xl font-bold text-foreground font-snaga border-b border-gray-100 pb-6 flex items-center gap-3">
+                <ShoppingBag className="text-primary" />
+                ملخص طلبك
+              </h2>
+
+              <ul className="space-y-6 max-h-[300px] overflow-y-auto no-scrollbar">
+                {items.map(item => (
+                  <li key={item.id} className="flex gap-4 items-center">
+                    <div className="w-16 h-16 rounded-2xl overflow-hidden bg-background flex-shrink-0 border border-gray-50">
+                      <img src={item.image_url || "/icons/logo.svg"} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-foreground text-sm truncate">{item.name}</p>
+                      <p className="text-xs text-gray-400">{item.quantity} × {item.price} د.ل</p>
+                    </div>
+                    <span className="font-bold text-primary text-sm whitespace-nowrap">{item.price * item.quantity} د.ل</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="space-y-4 pt-6 border-t border-gray-100">
+                <div className="flex justify-between text-gray-500 font-medium text-sm">
+                  <span>مجموع المنتجات</span>
+                  <span className="font-bold text-foreground">{totalPrice} د.ل</span>
+                </div>
+                <div className="flex justify-between text-gray-500 font-medium text-sm">
+                  <span>رسوم التوصيل</span>
+                  <span className="font-bold text-secondary">{formData.city_id ? `${shippingFee} د.ل` : "يتم الحساب..."}</span>
+                </div>
+                <div className="pt-6 flex justify-between items-center">
+                  <span className="text-xl font-bold text-foreground font-snaga">المبلغ الإجمالي</span>
+                  <div className="text-left">
+                    <span className="text-3xl font-black text-primary">{grandTotal} د.ل</span>
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                type="submit"
+                disabled={submitting || loading || !formData.city_id}
+                className="w-full bg-primary hover:bg-primary-dark disabled:bg-gray-300 text-white h-20 rounded-[2rem] font-bold text-xl shadow-xl shadow-primary/20 transition-all flex items-center justify-center gap-4 group active:scale-95 transform hover:-translate-y-1"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="animate-spin" size={24} />
+                    <span>جاري التأكيد...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>أكدي الطلب الآن</span>
+                    <ChevronLeft size={24} className="group-hover:-translate-x-2 transition-transform" />
+                  </>
+                )}
+              </button>
+              
+              <p className="text-[10px] text-center text-gray-400 font-bold leading-relaxed px-4">بالضغط على تأكيد، فإنك توافق على سياسة التوصيل والخصوصية في ليتل ون.</p>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
