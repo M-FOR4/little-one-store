@@ -311,7 +311,8 @@ export default function SettingsPage() {
       {/* Users Tab Content */}
       {activeTab === "users" && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-fade-in">
-          <table className="w-full text-right">
+          <div className="overflow-x-auto">
+            <table className="w-full text-right whitespace-nowrap min-w-[700px] lg:whitespace-normal lg:min-w-0">
             <thead>
               <tr className="bg-gray-50 text-gray-400 text-sm border-b">
                 <th className="px-6 py-4 font-medium">المستخدم</th>
@@ -364,6 +365,7 @@ export default function SettingsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

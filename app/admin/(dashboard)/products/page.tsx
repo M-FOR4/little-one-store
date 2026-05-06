@@ -73,7 +73,7 @@ export default function ProductsList() {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-right">
+          <table className="w-full text-right whitespace-nowrap min-w-[900px] lg:whitespace-normal lg:min-w-0">
             <thead>
               <tr className="bg-gray-50 text-gray-400 text-sm border-b">
                 <th className="px-6 py-4 font-medium">المنتج</th>

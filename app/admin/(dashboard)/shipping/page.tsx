@@ -124,7 +124,8 @@ export default function ShippingCitiesPage() {
       )}
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full text-right">
+        <div className="overflow-x-auto">
+          <table className="w-full text-right whitespace-nowrap min-w-[500px]">
           <thead>
             <tr className="bg-gray-50 text-gray-400 text-sm border-b">
               <th className="px-6 py-4 font-medium">المدينة</th>
@@ -158,6 +159,7 @@ export default function ShippingCitiesPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
