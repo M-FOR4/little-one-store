@@ -2,12 +2,12 @@
 
 import { useCart } from "@/components/CartProvider";
 import Link from "next/link";
-import { 
-  ShoppingBag, 
-  Trash2, 
-  Plus, 
-  Minus, 
-  ArrowRight, 
+import {
+  ShoppingBag,
+  Trash2,
+  Plus,
+  Minus,
+  ArrowRight,
   ShoppingBasket,
   Truck,
   ShieldCheck,
@@ -26,8 +26,8 @@ export default function CartPage() {
         </div>
         <h1 className="text-3xl font-bold text-foreground font-snaga mb-4">سلة المشتريات فارغة</h1>
         <p className="text-gray-500 mb-10 max-w-xs text-center leading-relaxed">اكتشفي مجموعتنا المميزة من الأسرّة وابدأي بتجهيز عالم طفلك الصغير.</p>
-        <Link 
-          href="/products" 
+        <Link
+          href="/products"
           className="bg-primary hover:bg-primary-dark text-white px-10 py-4 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20 transition-all flex items-center gap-3 active:scale-95"
         >
           اكتشفي المجموعة
@@ -42,7 +42,7 @@ export default function CartPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
           <div className="space-y-4">
-            <h1 className="text-4xl md:text-6xl font-extrabold text-foreground font-snaga animate-fade-in-up">سلة التسوق</h1>
+            <h1 className="text-4xl md:text-6xl font-bold text-foreground font-snaga animate-fade-in-up">سلة التسوق</h1>
             <p className="text-gray-500 font-medium flex items-center gap-2 animate-fade-in-up">
               لديك <span className="text-primary font-bold">{totalItems} قطع</span> في سلتك
             </p>
@@ -61,23 +61,23 @@ export default function CartPage() {
                 <div className="relative w-32 h-32 rounded-[2rem] overflow-hidden bg-background flex-shrink-0">
                   <img src={item.image_url || "/icons/logo.svg"} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                 </div>
-                
+
                 <div className="flex-1 text-center sm:text-right space-y-2">
                   <Link href={`/products/${item.id}`} className="text-xl font-bold text-foreground hover:text-primary transition-colors font-snaga block">
                     {item.name}
                   </Link>
-                  <p className="text-primary font-extrabold text-lg">{item.price} د.ل</p>
+                  <p className="text-primary font-bold text-lg">{item.price} د.ل</p>
                 </div>
 
                 <div className="flex items-center bg-background rounded-2xl px-3 py-2 border border-gray-100">
-                  <button 
+                  <button
                     onClick={() => updateQuantity(item.id, item.quantity - 1)}
                     className="p-2 text-gray-400 hover:text-primary transition-colors active:scale-90"
                   >
                     <Minus size={18} />
                   </button>
                   <span className="w-10 text-center font-bold text-lg">{item.quantity}</span>
-                  <button 
+                  <button
                     onClick={() => updateQuantity(item.id, item.quantity + 1)}
                     className="p-2 text-gray-400 hover:text-primary transition-colors active:scale-90"
                   >
@@ -90,7 +90,7 @@ export default function CartPage() {
                   <p className="text-xl font-black text-foreground">{item.price * item.quantity} د.ل</p>
                 </div>
 
-                <button 
+                <button
                   onClick={() => removeItem(item.id)}
                   className="p-4 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all group-hover:text-gray-400"
                   title="إزالة من السلة"
@@ -118,7 +118,7 @@ export default function CartPage() {
           <div className="lg:col-span-1 sticky top-32 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
             <div className="bg-white p-8 md:p-10 rounded-[3rem] border border-gray-100 shadow-2xl shadow-primary/5 space-y-8">
               <h2 className="text-2xl font-bold text-foreground font-snaga border-b border-gray-100 pb-6">ملخص الطلب</h2>
-              
+
               <div className="space-y-4">
                 <div className="flex justify-between text-gray-500 font-medium">
                   <span>المجموع الفرعي</span>
@@ -134,8 +134,8 @@ export default function CartPage() {
                 </div>
               </div>
 
-              <Link 
-                href="/checkout" 
+              <Link
+                href="/checkout"
                 className="w-full bg-primary hover:bg-primary-dark text-white py-5 rounded-[2rem] font-bold text-xl shadow-xl shadow-primary/20 transition-all flex items-center justify-center gap-4 transform hover:-translate-y-1 active:translate-y-0"
               >
                 <span>إتمام الطلب</span>

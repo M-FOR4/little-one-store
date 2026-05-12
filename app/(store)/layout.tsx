@@ -6,10 +6,9 @@ import { WhatsAppButton } from "@/components/WhatsAppButton";
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   return (
     <CartProvider>
-      <div className="min-h-screen flex flex-col bg-[#F9F9FA]">
+      <div className="min-h-screen flex flex-col bg-background">
         <Navbar />
         <main className="flex-1">{children}</main>
-        <WhatsAppButton />
         <Footer />
       </div>
     </CartProvider>

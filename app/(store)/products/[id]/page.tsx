@@ -3,13 +3,13 @@
 import { useEffect, useState, use } from "react";
 import { createClient } from "@/lib/supabase";
 import { useCart } from "@/components/CartProvider";
-import { 
-  ArrowRight, 
-  ShoppingBag, 
-  ShieldCheck, 
-  Truck, 
-  Clock, 
-  ChevronLeft, 
+import {
+  ArrowRight,
+  ShoppingBag,
+  ShieldCheck,
+  Truck,
+  Clock,
+  ChevronLeft,
   ChevronRight,
   Maximize2,
   Check,
@@ -17,7 +17,13 @@ import {
   Minus,
   Star,
   Info,
-  Heart
+  Heart,
+  Sparkles,
+  Award,
+  ThumbsUp,
+  Shield,
+  CheckCircle,
+  X
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -26,19 +32,21 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
   const { id } = use(params);
   const [product, setProduct] = useState<any>(null);
   const [images, setImages] = useState<any[]>([]);
+  const [benefits, setBenefits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [adding, setAdding] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  
+
   const { addItem } = useCart();
   const router = useRouter();
 
   useEffect(() => {
     async function fetchProduct() {
       const supabase = createClient();
-      
+
       // Fetch product details
       const { data: prodData, error } = await supabase
         .from('products')
@@ -62,7 +70,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
         .select('*')
         .eq('product_id', id)
         .order('display_order', { ascending: true });
-      
+
       // Combine main image with additional ones if not already present
       const allImgs = prodData.image_url ? [{ image_url: prodData.image_url }] : [];
       if (imgData) {
@@ -73,6 +81,15 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
         });
       }
       setImages(allImgs);
+      // Fetch product benefits
+      const { data: benefitsData } = await supabase
+        .from('product_benefits')
+        .select('*')
+        .or(`is_global.eq.true,product_id.eq.${id}`)
+        .order('sort_order', { ascending: true });
+
+      if (benefitsData) setBenefits(benefitsData);
+
       setLoading(false);
     }
     fetchProduct();
@@ -87,7 +104,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
       price: product.discount_price || product.price,
       image_url: product.image_url
     }, quantity);
-    
+
     setTimeout(() => {
       setAdding(false);
       setShowSuccess(true);
@@ -124,23 +141,29 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
         <div className="space-y-6">
           <div className="relative aspect-square rounded-[3rem] overflow-hidden bg-background border border-gray-100 group shadow-lg">
             {images.length > 0 ? (
-              <img 
-                src={images[activeImage].image_url} 
-                alt={product.name}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-              />
+              <div className="w-full h-full relative cursor-pointer" onClick={() => setLightboxOpen(true)}>
+                <img
+                  src={images[activeImage].image_url}
+                  alt={product.name}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                {/* Lightbox Hint */}
+                <div className="absolute top-4 left-4 bg-white/50 backdrop-blur-md p-2 rounded-xl text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Maximize2 size={24} />
+                </div>
+              </div>
             ) : (
               <div className="w-full h-full flex items-center justify-center opacity-10">
                 <ShoppingBag size={120} />
               </div>
             )}
-            
+
             {discount > 0 && (
               <div className="absolute top-8 right-8 bg-secondary text-white px-5 py-2 rounded-2xl font-bold shadow-xl">
                 وفر {discount}%
               </div>
             )}
-            
+
             {/* Gallery Navigation Overlay */}
             {images.length > 1 && (
               <div className="absolute inset-x-0 bottom-8 flex justify-center gap-3">
@@ -148,9 +171,8 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                   <button
                     key={idx}
                     onClick={() => setActiveImage(idx)}
-                    className={`w-3 h-3 rounded-full transition-all ${
-                      activeImage === idx ? "bg-primary w-8 shadow-lg shadow-primary/30" : "bg-white/50 backdrop-blur-sm"
-                    }`}
+                    className={`w-3 h-3 rounded-full transition-all ${activeImage === idx ? "bg-primary w-8 shadow-lg shadow-primary/30" : "bg-white/50 backdrop-blur-sm"
+                      }`}
                   />
                 ))}
               </div>
@@ -164,11 +186,12 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                 <button
                   key={idx}
                   onClick={() => setActiveImage(idx)}
-                  className={`aspect-square rounded-2xl overflow-hidden border-2 transition-all p-1 ${
-                    activeImage === idx ? "border-primary shadow-md" : "border-transparent opacity-60 hover:opacity-100"
-                  }`}
+                  className={`aspect-square relative rounded-2xl overflow-hidden border-2 transition-all p-1 ${activeImage === idx ? "border-primary shadow-md" : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
                 >
-                  <img src={img.image_url} alt="" className="w-full h-full object-cover rounded-xl" />
+                  <div className="w-full h-full relative rounded-xl overflow-hidden">
+                    <img src={img.image_url} alt="" className="w-full h-full object-cover rounded-xl" />
+                  </div>
                 </button>
               ))}
             </div>
@@ -182,25 +205,18 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
               {product.categories?.name || "تشكيلة ليتل ون"}
             </span>
             <h1 className="text-4xl md:text-5xl font-bold text-foreground font-snaga leading-tight">{product.name}</h1>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1 text-secondary">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <Star key={i} size={18} fill="currentColor" />
-                ))}
-              </div>
-              <span className="text-sm font-bold text-gray-400">تقييم ممتاز (5.0)</span>
-            </div>
+
           </div>
 
           <div className="pb-8 border-b border-gray-100">
             <div className="flex items-center gap-4">
               {product.discount_price ? (
                 <>
-                  <span className="text-4xl font-extrabold text-primary font-snaga">{product.discount_price} د.ل</span>
+                  <span className="text-4xl font-bold text-primary font-snaga">{product.discount_price} د.ل</span>
                   <span className="text-xl text-gray-400 line-through font-medium">{product.price} د.ل</span>
                 </>
               ) : (
-                <span className="text-4xl font-extrabold text-foreground font-snaga">{product.price} د.ل</span>
+                <span className="text-4xl font-bold text-foreground font-snaga">{product.price} د.ل</span>
               )}
             </div>
             <p className="text-sm text-gray-400 mt-2">* السعر شامل الضريبة، لا يشمل رسوم التوصيل</p>
@@ -212,24 +228,14 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
             </p>
 
             {/* Specs Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-background p-4 rounded-2xl flex items-center gap-4 border border-gray-100/50">
-                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-primary">
-                  <Maximize2 size={20} />
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-400 uppercase font-bold">الأبعاد</p>
-                  <p className="text-sm font-bold text-foreground">{product.dimensions || "قياسي"}</p>
-                </div>
+            <div className="grid grid-cols-2 gap-8 border-t border-gray-200/60 pt-6 mt-8">
+              <div className="space-y-1">
+                <p className="text-sm text-primary font-bold">الخامات</p>
+                <p className="text-base text-foreground font-medium leading-relaxed">{product.material || "خشب طبيعي"}</p>
               </div>
-              <div className="bg-background p-4 rounded-2xl flex items-center gap-4 border border-gray-100/50">
-                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-primary">
-                  <Heart size={20} />
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-400 uppercase font-bold">المواد</p>
-                  <p className="text-sm font-bold text-foreground">{product.material || "خشب طبيعي"}</p>
-                </div>
+              <div className="space-y-1">
+                <p className="text-sm text-primary font-bold">المقاسات</p>
+                <p className="text-base text-foreground font-medium flex items-center gap-1 direction-ltr justify-end sm:justify-start flex-row-reverse" dir="ltr">{product.dimensions || "قياسي"}</p>
               </div>
             </div>
           </div>
@@ -240,22 +246,22 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
               <>
                 <div className="flex items-center gap-6">
                   <div className="flex items-center bg-background border border-gray-100 rounded-2xl px-4 py-2">
-                    <button 
+                    <button
                       onClick={() => setQuantity(q => Math.max(1, q - 1))}
                       className="p-2 text-gray-400 hover:text-primary transition-colors active:scale-90"
                     >
                       <Minus size={20} />
                     </button>
                     <span className="w-12 text-center font-bold text-xl text-foreground">{quantity}</span>
-                    <button 
+                    <button
                       onClick={() => setQuantity(q => q + 1)}
                       className="p-2 text-gray-400 hover:text-primary transition-colors active:scale-90"
                     >
                       <Plus size={20} />
                     </button>
                   </div>
-                  
-                  <button 
+
+                  <button
                     onClick={handleAddToCart}
                     disabled={adding}
                     className="flex-1 bg-primary hover:bg-primary-dark text-white h-16 rounded-[1.5rem] font-bold text-lg shadow-xl shadow-primary/20 transition-all flex items-center justify-center gap-4 active:scale-95 disabled:opacity-70 group"
@@ -276,16 +282,22 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-3 text-xs font-bold text-gray-500 bg-gray-50/50 p-4 rounded-xl border border-dashed border-gray-200">
-                    <ShieldCheck className="text-green-500" size={20} />
-                    ضمان لمدة سنتين
+                {benefits.length > 0 && (
+                  <div className="grid grid-cols-2 gap-4">
+                    {benefits.map(benefit => {
+                      const ICON_MAP: Record<string, any> = {
+                        Sparkles, CheckCircle: ShieldCheck, Shield, Heart, Star, Truck, Award, ThumbsUp, Clock
+                      };
+                      const Icon = ICON_MAP[benefit.icon] || ShieldCheck;
+                      return (
+                        <div key={benefit.id} className="flex items-center gap-3 text-xs font-bold text-gray-500 bg-gray-50/50 p-4 rounded-xl border border-dashed border-gray-200">
+                          <Icon className="text-primary" size={20} />
+                          {benefit.title}
+                        </div>
+                      )
+                    })}
                   </div>
-                  <div className="flex items-center gap-3 text-xs font-bold text-gray-500 bg-gray-50/50 p-4 rounded-xl border border-dashed border-gray-200">
-                    <Truck className="text-primary" size={20} />
-                    توصيل لباب المنزل
-                  </div>
-                </div>
+                )}
               </>
             ) : (
               <div className="space-y-6">
@@ -296,9 +308,9 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                     <p className="text-sm opacity-80">هذا المنتج غير متوفر حالياً ولكن يمكنك الانضمام لقائمة الانتظار لنخبرك حال توفره.</p>
                   </div>
                 </div>
-                
+
                 {product.allow_waitlist && (
-                  <button 
+                  <button
                     onClick={() => router.push(`/products/${id}/waitlist`)}
                     className="w-full bg-foreground text-white py-5 rounded-[2rem] font-bold text-lg hover:shadow-2xl transition-all"
                   >
@@ -310,6 +322,43 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
           </div>
         </div>
       </div>
+
+      {/* Fullscreen Lightbox Overlay */}
+      {lightboxOpen && images.length > 0 && (
+        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center animate-fade-in" onClick={() => setLightboxOpen(false)}>
+          <button
+            className="absolute top-8 left-8 text-white/50 hover:text-white p-2 transition-colors z-50 bg-white/10 rounded-full"
+            onClick={() => setLightboxOpen(false)}
+          >
+            <X size={28} />
+          </button>
+
+          <div className="relative w-full max-w-5xl aspect-square md:aspect-video rounded-3xl" onClick={e => e.stopPropagation()}>
+            <img
+              src={images[activeImage].image_url}
+              alt={product.name}
+              className="w-full h-full object-contain"
+            />
+          </div>
+
+          {images.length > 1 && (
+            <>
+              <button
+                className="absolute right-4 md:right-12 top-1/2 -translate-y-1/2 text-white/50 hover:text-white p-4 transition-transform hover:scale-110 z-50 bg-white/5 rounded-full"
+                onClick={(e) => { e.stopPropagation(); setActiveImage(idx => idx === 0 ? images.length - 1 : idx - 1); }}
+              >
+                <ChevronRight size={40} />
+              </button>
+              <button
+                className="absolute left-4 md:left-12 top-1/2 -translate-y-1/2 text-white/50 hover:text-white p-4 transition-transform hover:scale-110 z-50 bg-white/5 rounded-full"
+                onClick={(e) => { e.stopPropagation(); setActiveImage(idx => idx === images.length - 1 ? 0 : idx + 1); }}
+              >
+                <ChevronLeft size={40} />
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

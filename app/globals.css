@@ -1,15 +1,19 @@
-@import url('https://use.typekit.net/dql3asv.css');
 @import "tailwindcss";
 
 :root {
-  --background: #F9F9FA;
+  /* off-white airy background - forced to warm hex */
+  --background: #FDFAF5;
   --foreground: #333333;
+
+  /* Little One brand teal-blue */
   --primary: #537D84;
-  --primary-light: #6a9aa3;
-  --primary-dark: #3d5e63;
-  --secondary: #D8BDA3;
-  --secondary-light: #e6d4c2;
-  --secondary-dark: #c4a485;
+  --primary-light: #729c8e;
+  --primary-dark: #3a5c62;
+
+  /* warm cream exact hex */
+  --secondary: #F3EAE0;
+  --secondary-light: #fbf5ee;
+  --secondary-dark: #cba885;
 }
 
 @theme inline {
@@ -21,8 +25,117 @@
   --color-secondary: var(--secondary);
   --color-secondary-light: var(--secondary-light);
   --color-secondary-dark: var(--secondary-dark);
-  --font-sans: var(--font-tajawal), 'Tajawal', sans-serif;
-  --font-snaga: 'Snaga Arabic Text', var(--font-tajawal), sans-serif;
+  /* Default font for now, user will choose from the 10 */
+  --font-sans: "Cairo", sans-serif;
+  --font-snaga: "Cairo", sans-serif;
+}
+
+/* Font Gallery - Batch 1: Modern & Geometric */
+.font-alexandria {
+  font-family: "Alexandria", sans-serif;
+}
+
+.font-almarai {
+  font-family: "Almarai", sans-serif;
+}
+
+.font-cairo {
+  font-family: "Cairo", sans-serif;
+}
+
+.font-ibm-plex {
+  font-family: "IBM Plex Sans Arabic", sans-serif;
+}
+
+.font-noto-sans {
+  font-family: "Noto Sans Arabic", sans-serif;
+}
+
+.font-readex {
+  font-family: "Readex Pro", sans-serif;
+}
+
+.font-tajawal {
+  font-family: "Tajawal", sans-serif;
+}
+
+.font-vazir {
+  font-family: "Vazirmatn", sans-serif;
+}
+
+/* Font Gallery - Batch 2: Soft & Friendly */
+.font-baloo {
+  font-family: "Baloo Bhaijaan 2", sans-serif;
+}
+
+.font-changa {
+  font-family: "Changa", sans-serif;
+}
+
+.font-lemonada {
+  font-family: "Lemonada", sans-serif;
+}
+
+.font-mada {
+  font-family: "Mada", sans-serif;
+}
+
+.font-marhey {
+  font-family: "Marhey", sans-serif;
+}
+
+.font-rubik {
+  font-family: "Rubik Arabic", sans-serif;
+}
+
+/* Font Gallery - Batch 3: Elegant & Artistic */
+.font-amiri {
+  font-family: "Amiri", serif;
+}
+
+.font-aref {
+  font-family: "Aref Ruqaa", serif;
+}
+
+.font-elmessiri {
+  font-family: "El Messiri", sans-serif;
+}
+
+.font-markazi {
+  font-family: "Markazi Text", serif;
+}
+
+.font-reem {
+  font-family: "Reem Kufi", sans-serif;
+}
+
+.font-scheherazade {
+  font-family: "Scheherazade New", serif;
+}
+
+/* Font Gallery - Batch 4: Unique & Display */
+.font-blaka {
+  font-family: "Blaka", cursive;
+}
+
+.font-jomhuria {
+  font-family: "Jomhuria", cursive;
+}
+
+.font-katibeh {
+  font-family: "Katibeh", cursive;
+}
+
+.font-kufam {
+  font-family: "Kufam", sans-serif;
+}
+
+.font-lalezar {
+  font-family: "Lalezar", cursive;
+}
+
+.font-rakkas {
+  font-family: "Rakkas", cursive;
 }
 
 body {
@@ -30,15 +143,38 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   direction: rtl;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+
+  /* Arabic text joining fixes */
+  font-variant-ligatures: common-ligatures;
+  font-feature-settings: "kern" 1, "liga" 1, "clig" 1, "calt" 1;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-snaga);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+  /* Smoother letter spacing for Arabic headers */
+  letter-spacing: 0;
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--secondary);
   border-radius: 999px;
@@ -55,6 +191,7 @@ body {
     opacity: 0;
     transform: translateY(24px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -62,8 +199,13 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideInRight {
@@ -71,6 +213,7 @@ body {
     opacity: 0;
     transform: translateX(24px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -78,13 +221,27 @@ body {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
 }
 
 @keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .animate-fade-in-up {
@@ -108,11 +265,34 @@ body {
 }
 
 /* Stagger children animations */
-.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
-.stagger-children > *:nth-child(2) { animation-delay: 100ms; }
-.stagger-children > *:nth-child(3) { animation-delay: 200ms; }
-.stagger-children > *:nth-child(4) { animation-delay: 300ms; }
-.stagger-children > *:nth-child(5) { animation-delay: 400ms; }
-.stagger-children > *:nth-child(6) { animation-delay: 500ms; }
-.stagger-children > *:nth-child(7) { animation-delay: 600ms; }
-.stagger-children > *:nth-child(8) { animation-delay: 700ms; }
+.stagger-children>*:nth-child(1) {
+  animation-delay: 0ms;
+}
+
+.stagger-children>*:nth-child(2) {
+  animation-delay: 100ms;
+}
+
+.stagger-children>*:nth-child(3) {
+  animation-delay: 200ms;
+}
+
+.stagger-children>*:nth-child(4) {
+  animation-delay: 300ms;
+}
+
+.stagger-children>*:nth-child(5) {
+  animation-delay: 400ms;
+}
+
+.stagger-children>*:nth-child(6) {
+  animation-delay: 500ms;
+}
+
+.stagger-children>*:nth-child(7) {
+  animation-delay: 600ms;
+}
+
+.stagger-children>*:nth-child(8) {
+  animation-delay: 700ms;
+}

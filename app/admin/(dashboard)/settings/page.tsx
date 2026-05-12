@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
-import { Save, Globe, Phone, Mail, Link2, Users, Key, Trash2, Edit2, Plus, X } from "lucide-react";
+import { Save, Globe, Phone, Mail, Link2, Users, Key, Trash2, Edit2, Plus, X, Ticket } from "lucide-react";
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -11,7 +11,6 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("store"); // "store" or "users"
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  // Store settings
   const [settings, setSettings] = useState({
     site_name: "Little One",
     site_description: "",
@@ -21,6 +20,11 @@ export default function SettingsPage() {
     facebook_url: "",
     whatsapp_number: "",
     delivery_info: "",
+    enable_coupons: true,
+    company_address: "",
+    company_tax_id: "",
+    company_phone: "",
+    invoice_footer_note: "",
   });
 
   // Users management
@@ -165,8 +169,8 @@ export default function SettingsPage() {
           <button
             onClick={() => setActiveTab("store")}
             className={`px-6 py-2 rounded-full font-bold transition-all ${activeTab === "store"
-                ? "bg-primary text-white shadow-lg shadow-primary/20"
-                : "text-gray-500 hover:bg-gray-100"
+              ? "bg-primary text-white shadow-lg shadow-primary/20"
+              : "text-gray-500 hover:bg-gray-100"
               }`}
           >
             إعدادات المتجر
@@ -175,8 +179,8 @@ export default function SettingsPage() {
             <button
               onClick={() => setActiveTab("users")}
               className={`px-6 py-2 rounded-full font-bold transition-all ${activeTab === "users"
-                  ? "bg-primary text-white shadow-lg shadow-primary/20"
-                  : "text-gray-500 hover:bg-gray-100"
+                ? "bg-primary text-white shadow-lg shadow-primary/20"
+                : "text-gray-500 hover:bg-gray-100"
                 }`}
             >
               إدارة المستخدمين
@@ -256,6 +260,21 @@ export default function SettingsPage() {
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none resize-none text-gray-800"
               />
             </div>
+
+            <div className="pt-4 border-t border-gray-50">
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={settings.enable_coupons}
+                    onChange={(e) => setSettings({ ...settings, enable_coupons: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </div>
+                <span className="text-sm font-bold text-gray-700 group-hover:text-primary transition-colors">تفعيل نظام الكوبونات في صفحة الدفع</span>
+              </label>
+            </div>
           </div>
 
           {/* Contact Info */}
@@ -305,6 +324,59 @@ export default function SettingsPage() {
               />
             </div>
           </div>
+
+          {/* Invoice Settings */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 col-span-1 md:col-span-2 space-y-5">
+            <h2 className="text-base font-bold text-gray-800 flex items-center gap-2 border-b pb-4">
+              <Ticket size={18} className="text-primary" />
+              إعدادات الفاتورة المطبوعة
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">عنوان الشركة (يظهر في الفاتورة)</label>
+                <input
+                  type="text"
+                  placeholder="ليبيا - طرابلس - حي الأندلس"
+                  value={settings.company_address || ""}
+                  onChange={(e) => setSettings({ ...settings, company_address: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none text-gray-800"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">الرقم الضريبي / السجل التجاري</label>
+                <input
+                  type="text"
+                  placeholder="VAT ID: 102-445-998"
+                  value={settings.company_tax_id || ""}
+                  onChange={(e) => setSettings({ ...settings, company_tax_id: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none text-gray-800"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">رقم الهاتف (يظهر في الفاتورة)</label>
+                <input
+                  type="text"
+                  placeholder="+218 91 000 0000"
+                  value={settings.company_phone || ""}
+                  onChange={(e) => setSettings({ ...settings, company_phone: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none text-gray-800"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">الملاحظة السفلية (Invoice Footer Note)</label>
+              <textarea
+                rows={3}
+                value={settings.invoice_footer_note || ""}
+                onChange={(e) => setSettings({ ...settings, invoice_footer_note: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none resize-none text-gray-800"
+                placeholder="شروط الاستبدال، عبارات شكر، الخ..."
+              />
+            </div>
+          </div>
         </form>
       )}
 
@@ -313,58 +385,58 @@ export default function SettingsPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-fade-in">
           <div className="overflow-x-auto">
             <table className="w-full text-right whitespace-nowrap min-w-[700px] lg:whitespace-normal lg:min-w-0">
-            <thead>
-              <tr className="bg-gray-50 text-gray-400 text-sm border-b">
-                <th className="px-6 py-4 font-medium">المستخدم</th>
-                <th className="px-6 py-4 font-medium">اسم المستخدم</th>
-                <th className="px-6 py-4 font-medium">الصلاحية</th>
-                <th className="px-6 py-4 font-medium text-left">الإجراءات</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {adminUsers.map((user) => (
-                <tr key={user.id} className="text-gray-700 hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <span className="font-bold text-gray-800">{user.full_name}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <code className="bg-gray-100 px-2 py-1 rounded text-xs">{user.username}</code>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.role === 'admin' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
-                      }`}>
-                      {user.role === 'admin' ? 'مدير' : 'مستخدم'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => {
-                          setEditingUser(user);
-                          setUserFormData({
-                            full_name: user.full_name,
-                            username: user.username,
-                            role: user.role,
-                            password: "" // Don't load password
-                          });
-                          setIsUserModalOpen(true);
-                        }}
-                        className="p-2 text-gray-400 hover:text-primary transition-colors"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteUser(user.id, user.role)}
-                        className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
+              <thead>
+                <tr className="bg-gray-50 text-gray-400 text-sm border-b">
+                  <th className="px-6 py-4 font-medium">المستخدم</th>
+                  <th className="px-6 py-4 font-medium">اسم المستخدم</th>
+                  <th className="px-6 py-4 font-medium">الصلاحية</th>
+                  <th className="px-6 py-4 font-medium text-left">الإجراءات</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {adminUsers.map((user) => (
+                  <tr key={user.id} className="text-gray-700 hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <span className="font-bold text-gray-800">{user.full_name}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <code className="bg-gray-100 px-2 py-1 rounded text-xs">{user.username}</code>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.role === 'admin' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
+                        }`}>
+                        {user.role === 'admin' ? 'مدير' : 'مستخدم'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingUser(user);
+                            setUserFormData({
+                              full_name: user.full_name,
+                              username: user.username,
+                              role: user.role,
+                              password: "" // Don't load password
+                            });
+                            setIsUserModalOpen(true);
+                          }}
+                          className="p-2 text-gray-400 hover:text-primary transition-colors"
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user.id, user.role)}
+                          className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

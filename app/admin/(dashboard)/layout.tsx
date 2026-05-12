@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, PackagePlus, Settings, ShoppingBag, LogOut, Package, Users, MapPin, Menu, X } from "lucide-react";
+import { LayoutDashboard, PackagePlus, Settings, ShoppingBag, LogOut, Package, Users, MapPin, Menu, X, Sparkles, LineChart, Ticket } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { SaveProgressProvider } from "@/components/admin/SaveProgressContext";
 
@@ -19,10 +19,13 @@ export default function DashboardLayout({
 
   const navigation = [
     { name: "الرئيسية", href: "/admin", icon: LayoutDashboard },
+    { name: "التحليلات", href: "/admin/analytics", icon: LineChart },
     { name: "الطلبات", href: "/admin/orders", icon: ShoppingBag },
     { name: "المنتجات", href: "/admin/products", icon: Package },
+    { name: "الكوبونات", href: "/admin/coupons", icon: Ticket },
     { name: "إضافة منتج", href: "/admin/products/new", icon: PackagePlus },
     { name: "مدن الشحن", href: "/admin/shipping", icon: MapPin },
+    { name: "المميزات", href: "/admin/features", icon: Sparkles },
     { name: "قائمة الانتظار", href: "/admin/waitlist", icon: Users },
     { name: "الإعدادات", href: "/admin/settings", icon: Settings },
   ];
@@ -51,8 +54,8 @@ export default function DashboardLayout({
           <p className="text-xs text-gray-500 mt-1">لوحة الإدارة</p>
         </div>
         {/* Close button for mobile */}
-        <button 
-          onClick={() => setMobileMenuOpen(false)} 
+        <button
+          onClick={() => setMobileMenuOpen(false)}
           className="md:hidden p-2 text-gray-400 hover:text-gray-600 rounded-lg bg-gray-50"
         >
           <X size={20} />
@@ -69,8 +72,8 @@ export default function DashboardLayout({
               href={item.href}
               onClick={() => setMobileMenuOpen(false)}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive
-                  ? "bg-primary text-white shadow-md shadow-primary/20"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-primary"
+                ? "bg-primary text-white shadow-md shadow-primary/20"
+                : "text-gray-600 hover:bg-gray-50 hover:text-primary"
                 }`}
             >
               <Icon size={20} />
@@ -103,8 +106,8 @@ export default function DashboardLayout({
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" 
+          <div
+            className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity"
             onClick={() => setMobileMenuOpen(false)}
           />
           {/* Drawer Menu */}
@@ -119,7 +122,7 @@ export default function DashboardLayout({
         {/* Topbar */}
         <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 md:px-8 py-3 flex items-center justify-between sticky top-0 z-10 w-full">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={() => setMobileMenuOpen(true)}
               className="md:hidden p-2 text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
             >
