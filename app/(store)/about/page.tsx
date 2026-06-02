@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
+import { Shield, Star, Truck, Heart, CheckCircle, Award, ThumbsUp, Clock, Sparkles } from "lucide-react";
+
+const ICON_MAP: Record<string, any> = {
+  Shield, Star, Truck, Heart, CheckCircle, Award, ThumbsUp, Clock, Sparkles,
+};
 
 const DEFAULT_ABOUT = {
   heading: "عن Little One",
@@ -14,20 +19,30 @@ const DEFAULT_ABOUT = {
   stat2_label: "عميل سعيد في ليبيا",
 };
 
+const DEFAULT_FEATURES = [
+  { icon: "Shield", title: "الجودة والأمان", description: "نحرص على استخدام أفضل أنواع الخشب والدهانات الآمنة تماماً للأطفال." },
+  { icon: "Star", title: "تصميمات متميزة", description: "تصميمات عصرية تتناسب مع مختلف أذواق غرف الأطفال الحديثة." },
+  { icon: "Truck", title: "توصيل سريع", description: "خدمة توصيل موثوقة لجميع المدن الليبية مع عناية خاصة بالمنتج." },
+];
+
 export default function AboutPage() {
   const [about, setAbout] = useState(DEFAULT_ABOUT);
+  const [features, setFeatures] = useState(DEFAULT_FEATURES);
 
   useEffect(() => {
     async function fetchAbout() {
       try {
         const supabase = createClient();
-        const { data } = await supabase
-          .from("homepage_content")
-          .select("content")
-          .eq("section", "about")
-          .maybeSingle();
-        if (data?.content) {
-          setAbout((prev) => ({ ...prev, ...data.content }));
+        const [aboutRes, featuresRes] = await Promise.all([
+          supabase.from("homepage_content").select("content").eq("section", "about").maybeSingle(),
+          supabase.from("homepage_content").select("content").eq("section", "about_features").maybeSingle(),
+        ]);
+        if (aboutRes.data?.content) {
+          setAbout((prev) => ({ ...prev, ...(aboutRes.data!.content as any) }));
+        }
+        if (featuresRes.data?.content) {
+          const loaded = (featuresRes.data!.content as any).features;
+          if (Array.isArray(loaded) && loaded.length > 0) setFeatures(loaded);
         }
       } catch (e) {
         // Fallback to defaults silently
@@ -41,8 +56,13 @@ export default function AboutPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         <div className="space-y-8 animate-fade-in-up">
           <h1 className="text-5xl font-bold text-[#333] leading-tight">
-            {about.heading.replace("Little One", "")}
-            <span className="text-[#537D84]">Little One</span>
+            {about.heading.includes("Little One")
+              ? <>
+                  {about.heading.replace("Little One", "").trim()}{" "}
+                  <span className="text-[#537D84]">Little One</span>
+                </>
+              : about.heading
+            }
           </h1>
           <p className="text-xl text-gray-500 leading-relaxed">{about.description}</p>
           <div className="grid grid-cols-2 gap-8">
@@ -66,27 +86,18 @@ export default function AboutPage() {
       </div>
 
       <div className="bg-[#f3efe9] rounded-[4rem] p-16 grid grid-cols-1 md:grid-cols-3 gap-12">
-        <div className="space-y-4 text-center">
-          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto text-[#537D84] shadow-sm">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </div>
-          <h3 className="text-xl font-bold text-[#333]">الجودة والأمان</h3>
-          <p className="text-gray-500 text-sm">نحرص على استخدام أفضل أنواع الخشب والدهانات الآمنة تماماً للأطفال.</p>
-        </div>
-        <div className="space-y-4 text-center">
-          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto text-[#537D84] shadow-sm">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          </div>
-          <h3 className="text-xl font-bold text-[#333]">تصميمات متميزة</h3>
-          <p className="text-gray-500 text-sm">تصميمات عصرية تتناسب مع مختلف أذواق غرف الأطفال الحديثة.</p>
-        </div>
-        <div className="space-y-4 text-center">
-          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto text-[#537D84] shadow-sm">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-          </div>
-          <h3 className="text-xl font-bold text-[#333]">توصيل سريع</h3>
-          <p className="text-gray-500 text-sm">خدمة توصيل موثوقة لجميع المدن الليبية مع عناية خاصة بالمنتج.</p>
-        </div>
+        {features.map((feat, i) => {
+          const Icon = ICON_MAP[feat.icon] || Shield;
+          return (
+            <div key={i} className="space-y-4 text-center">
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto text-[#537D84] shadow-sm">
+                <Icon size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-[#333]">{feat.title}</h3>
+              <p className="text-gray-500 text-sm">{feat.description}</p>
+            </div>
+          );
+        })}
       </div>
 
       <div className="text-center space-y-8 py-20">

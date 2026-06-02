@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase";
-import { Save, Globe, Phone, Mail, Link2, Users, Key, Trash2, Edit2, Plus, X, Ticket, Layout, Image, Type, AlignLeft } from "lucide-react";
+import { Save, Globe, Phone, Trash2, Edit2, Plus, X, Ticket, Layout, Type, AlignLeft, Upload, Shield, Star, Heart, CheckCircle, Truck, Award, ThumbsUp, Clock, Sparkles } from "lucide-react";
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -66,6 +66,12 @@ export default function SettingsPage() {
     stat2_value: "+500",
     stat2_label: "عميل سعيد في ليبيا",
   });
+  const [aboutFeatures, setAboutFeatures] = useState([
+    { icon: "Shield", title: "الجودة والأمان", description: "نحرص على استخدام أفضل أنواع الخشب والدهانات الآمنة تماماً للأطفال." },
+    { icon: "Star", title: "تصميمات متميزة", description: "تصميمات عصرية تتناسب مع مختلف أذواق غرف الأطفال الحديثة." },
+    { icon: "Truck", title: "توصيل سريع", description: "خدمة توصيل موثوقة لجميع المدن الليبية مع عناية خاصة بالمنتج." },
+  ]);
+  const [uploadingImage, setUploadingImage] = useState<string | null>(null); // which section is uploading
 
   useEffect(() => {
     // Get current user from localStorage
@@ -94,16 +100,19 @@ export default function SettingsPage() {
 
       if (usersData) setAdminUsers(usersData);
 
-      // Fetch homepage content sections in parallel
-      const [heroRes, bannerRes, aboutRes] = await Promise.all([
-        supabase.from("homepage_content").select("content").eq("section", "hero").maybeSingle(),
-        supabase.from("homepage_content").select("content").eq("section", "banner").maybeSingle(),
-        supabase.from("homepage_content").select("content").eq("section", "about").maybeSingle(),
-      ]);
-
-      if (heroRes.data?.content) setHeroContent((p) => ({ ...p, ...heroRes.data.content }));
-      if (bannerRes.data?.content) setBannerContent((p) => ({ ...p, ...bannerRes.data.content }));
-      if (aboutRes.data?.content) setAboutContent((p) => ({ ...p, ...aboutRes.data.content }));
+      // Fetch homepage content — wrapped so loading always resolves even if table doesn't exist yet
+      try {
+        const [heroRes, bannerRes, aboutRes, aboutFeatRes] = await Promise.all([
+          supabase.from("homepage_content").select("content").eq("section", "hero").maybeSingle(),
+          supabase.from("homepage_content").select("content").eq("section", "banner").maybeSingle(),
+          supabase.from("homepage_content").select("content").eq("section", "about").maybeSingle(),
+          supabase.from("homepage_content").select("content").eq("section", "about_features").maybeSingle(),
+        ]);
+        if (heroRes.data?.content) setHeroContent((p) => ({ ...p, ...(heroRes.data!.content as any) }));
+        if (bannerRes.data?.content) setBannerContent((p) => ({ ...p, ...(bannerRes.data!.content as any) }));
+        if (aboutRes.data?.content) setAboutContent((p) => ({ ...p, ...(aboutRes.data!.content as any) }));
+        if (aboutFeatRes.data?.content) setAboutFeatures((aboutFeatRes.data!.content as any).features || aboutFeatures);
+      } catch (_) { /* table not created yet — use defaults */ }
 
       setLoading(false);
     }
@@ -140,6 +149,7 @@ export default function SettingsPage() {
         supabase.from("homepage_content").upsert({ section: "hero", content: heroContent }, { onConflict: "section" }),
         supabase.from("homepage_content").upsert({ section: "banner", content: bannerContent }, { onConflict: "section" }),
         supabase.from("homepage_content").upsert({ section: "about", content: aboutContent }, { onConflict: "section" }),
+        supabase.from("homepage_content").upsert({ section: "about_features", content: { features: aboutFeatures } }, { onConflict: "section" }),
       ]);
       setContentSuccess(true);
       setTimeout(() => setContentSuccess(false), 3000);
@@ -149,6 +159,108 @@ export default function SettingsPage() {
       setContentSaving(false);
     }
   };
+
+  // ── Upload image to Supabase Storage ──────────────────────────────────────
+  const uploadImage = async (file: File, section: string): Promise<string | null> => {
+    setUploadingImage(section);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop();
+      const path = `content/${section}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("media").upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
+      return urlData.publicUrl;
+    } catch (err: any) {
+      alert("خطأ في رفع الصورة: " + err.message);
+      return null;
+    } finally {
+      setUploadingImage(null);
+    }
+  };
+
+  // ── Drag & Drop image uploader component ──────────────────────────────────
+  const ICONS_LIST = [
+    { key: "Shield", label: "درع" },
+    { key: "Star", label: "نجمة" },
+    { key: "Truck", label: "شاحنة" },
+    { key: "Heart", label: "قلب" },
+    { key: "CheckCircle", label: "صح" },
+    { key: "Award", label: "جائزة" },
+    { key: "ThumbsUp", label: "إعجاب" },
+    { key: "Clock", label: "ساعة" },
+    { key: "Sparkles", label: "بريق" },
+  ];
+  const ICON_MAP: Record<string, any> = { Shield, Star, Truck, Heart, CheckCircle, Award, ThumbsUp, Clock, Sparkles };
+
+  function ImageUploader({
+    sectionKey,
+    value,
+    onChange,
+  }: {
+    sectionKey: string;
+    value: string;
+    onChange: (url: string) => void;
+  }) {
+    const inputRef = useRef<HTMLInputElement>(null);
+    const [dragging, setDragging] = useState(false);
+
+    const handleFile = useCallback(async (file: File) => {
+      if (!file.type.startsWith("image/")) return alert("الرجاء اختيار صورة فقط");
+      const url = await uploadImage(file, sectionKey);
+      if (url) onChange(url);
+    }, [sectionKey, onChange]);
+
+    const onDrop = (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragging(false);
+      const file = e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    };
+
+    const isUploading = uploadingImage === sectionKey;
+
+    return (
+      <div className="space-y-3">
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={onDrop}
+          onClick={() => inputRef.current?.click()}
+          className={`relative border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all
+            ${dragging ? "border-primary bg-primary/5 scale-[1.01]" : "border-gray-200 hover:border-primary/50 hover:bg-gray-50"}`}
+        >
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+          />
+          {isUploading ? (
+            <div className="flex flex-col items-center gap-2 text-primary">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+              <span className="text-sm font-medium">جاري الرفع...</span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2 text-gray-400">
+              <Upload size={28} className={dragging ? "text-primary" : ""} />
+              <span className="text-sm font-medium text-gray-500">اسحب صورة هنا أو <span className="text-primary underline">اضغط للاختيار</span></span>
+              <span className="text-xs text-gray-300">PNG, JPG, WEBP</span>
+            </div>
+          )}
+        </div>
+        {value && (
+          <div className="relative">
+            <img src={value} alt="preview" className="h-28 w-full rounded-2xl object-cover border border-gray-100" />
+            <span className="absolute bottom-2 right-2 bg-black/40 text-white text-xs px-2 py-0.5 rounded-lg backdrop-blur-sm">
+              {value.startsWith("/") ? "صورة محلية" : "Supabase Storage"}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -552,12 +664,13 @@ export default function SettingsPage() {
                   onChange={(e) => setHeroContent({ ...heroContent, title_line2: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none text-gray-800" />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">رابط الصورة (Image URL)</label>
-                <input type="text" dir="ltr" value={heroContent.image_url}
-                  onChange={(e) => setHeroContent({ ...heroContent, image_url: e.target.value })}
-                  placeholder="/images/bed1.jpg"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none text-gray-800" />
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">صورة ال Hero</label>
+                <ImageUploader
+                  sectionKey="hero"
+                  value={heroContent.image_url}
+                  onChange={(url) => setHeroContent({ ...heroContent, image_url: url })}
+                />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">النص الوصفي</label>
@@ -578,13 +691,6 @@ export default function SettingsPage() {
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none text-gray-800" />
               </div>
             </div>
-            {/* Live preview of image */}
-            {heroContent.image_url && (
-              <div className="pt-2">
-                <p className="text-xs text-gray-400 mb-2">معاينة الصورة:</p>
-                <img src={heroContent.image_url} alt="preview" className="h-32 rounded-2xl object-cover border border-gray-100" />
-              </div>
-            )}
           </div>
 
           {/* Banner Section Editor */}
@@ -607,17 +713,18 @@ export default function SettingsPage() {
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none text-gray-800" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">رابط الصورة (Image URL)</label>
-                <input type="text" dir="ltr" value={bannerContent.image_url}
-                  onChange={(e) => setBannerContent({ ...bannerContent, image_url: e.target.value })}
-                  placeholder="/images/bed2.jpg"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none text-gray-800" />
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">نص زر «اقرأ قصتنا»</label>
                 <input type="text" value={bannerContent.cta_text}
                   onChange={(e) => setBannerContent({ ...bannerContent, cta_text: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none text-gray-800" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">صورة ال Banner</label>
+                <ImageUploader
+                  sectionKey="banner"
+                  value={bannerContent.image_url}
+                  onChange={(url) => setBannerContent({ ...bannerContent, image_url: url })}
+                />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">النص التفصيلي</label>
@@ -626,12 +733,6 @@ export default function SettingsPage() {
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none resize-none text-gray-800" />
               </div>
             </div>
-            {bannerContent.image_url && (
-              <div className="pt-2">
-                <p className="text-xs text-gray-400 mb-2">معاينة الصورة:</p>
-                <img src={bannerContent.image_url} alt="preview" className="h-32 rounded-2xl object-cover border border-gray-100" />
-              </div>
-            )}
           </div>
 
           {/* About Section Editor */}
@@ -647,12 +748,13 @@ export default function SettingsPage() {
                   onChange={(e) => setAboutContent({ ...aboutContent, heading: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none text-gray-800" />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">رابط الصورة (Image URL)</label>
-                <input type="text" dir="ltr" value={aboutContent.image_url}
-                  onChange={(e) => setAboutContent({ ...aboutContent, image_url: e.target.value })}
-                  placeholder="/hero-image.jpg"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none text-gray-800" />
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">صورة صفحة قصتنا</label>
+                <ImageUploader
+                  sectionKey="about"
+                  value={aboutContent.image_url}
+                  onChange={(url) => setAboutContent({ ...aboutContent, image_url: url })}
+                />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">النص التعريفي</label>
@@ -685,12 +787,84 @@ export default function SettingsPage() {
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none text-gray-800" />
               </div>
             </div>
-            {aboutContent.image_url && (
-              <div className="pt-2">
-                <p className="text-xs text-gray-400 mb-2">معاينة الصورة:</p>
-                <img src={aboutContent.image_url} alt="preview" className="h-32 rounded-2xl object-cover border border-gray-100" />
-              </div>
-            )}
+          </div>
+
+          {/* About Features Editor */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
+            <h2 className="text-base font-bold text-gray-800 flex items-center gap-2 border-b pb-4">
+              <Sparkles size={18} className="text-primary" />
+              ميزات صفحة قصتنا (الجودة / التصميم / التوصيل)
+            </h2>
+            <div className="space-y-4">
+              {aboutFeatures.map((feat, i) => {
+                const FeatIcon = ICON_MAP[feat.icon] || Shield;
+                return (
+                  <div key={i} className="border border-gray-100 rounded-2xl p-4 space-y-3 bg-gray-50/50">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                        <FeatIcon size={15} />
+                      </span>
+                      <span className="text-sm font-bold text-gray-700">ميزة {i + 1}</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">الأيقونة</label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {ICONS_LIST.map((ic) => {
+                            const Ic = ICON_MAP[ic.key];
+                            return (
+                              <button
+                                key={ic.key}
+                                type="button"
+                                title={ic.label}
+                                onClick={() => {
+                                  const updated = [...aboutFeatures];
+                                  updated[i] = { ...updated[i], icon: ic.key };
+                                  setAboutFeatures(updated);
+                                }}
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                                  feat.icon === ic.key
+                                    ? "bg-primary text-white shadow-md shadow-primary/30"
+                                    : "bg-white border border-gray-200 text-gray-400 hover:border-primary hover:text-primary"
+                                }`}
+                              >
+                                <Ic size={15} />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">العنوان</label>
+                        <input
+                          type="text"
+                          value={feat.title}
+                          onChange={(e) => {
+                            const updated = [...aboutFeatures];
+                            updated[i] = { ...updated[i], title: e.target.value };
+                            setAboutFeatures(updated);
+                          }}
+                          className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none text-gray-800 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">الوصف</label>
+                        <textarea
+                          rows={2}
+                          value={feat.description}
+                          onChange={(e) => {
+                            const updated = [...aboutFeatures];
+                            updated[i] = { ...updated[i], description: e.target.value };
+                            setAboutFeatures(updated);
+                          }}
+                          className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none resize-none text-gray-800 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
         </div>

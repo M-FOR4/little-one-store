@@ -84,12 +84,10 @@ export default function Home() {
         setFeatures(featuresRes.data || []);
 
         // Merge DB content with defaults (fallback gracefully)
-        if (heroRes.data?.content) {
-          setHero((prev) => ({ ...prev, ...heroRes.data.content }));
-        }
-        if (bannerRes.data?.content) {
-          setBanner((prev) => ({ ...prev, ...bannerRes.data.content }));
-        }
+        const heroData = heroRes.data?.content;
+        const bannerData = bannerRes.data?.content;
+        if (heroData) setHero((prev) => ({ ...prev, ...(heroData as any) }));
+        if (bannerData) setBanner((prev) => ({ ...prev, ...(bannerData as any) }));
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {

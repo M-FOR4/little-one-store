@@ -51,6 +51,16 @@ VALUES
       "stat2_value": "+500",
       "stat2_label": "عميل سعيد في ليبيا"
     }'::jsonb
+  ),
+  (
+    'about_features',
+    '{
+      "features": [
+        { "icon": "Shield", "title": "الجودة والأمان", "description": "نحرص على استخدام أفضل أنواع الخشب والدهانات الآمنة تماماً للأطفال." },
+        { "icon": "Star", "title": "تصميمات متميزة", "description": "تصميمات عصرية تتناسب مع مختلف أذواق غرف الأطفال الحديثة." },
+        { "icon": "Truck", "title": "توصيل سريع", "description": "خدمة توصيل موثوقة لجميع المدن الليبية مع عناية خاصة بالمنتج." }
+      ]
+    }'::jsonb
   )
 ON CONFLICT (section) DO NOTHING;
 
