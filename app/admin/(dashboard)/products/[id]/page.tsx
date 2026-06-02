@@ -265,6 +265,19 @@ export default function EditProduct({ params }: { params: Promise<{ id: string }
                 <option value="backorder">متاح للحجز</option>
               </select>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">كمية المخزون</label>
+              <input
+                type="number"
+                required
+                value={formData.stock_quantity}
+                onChange={(e) => setFormData({ ...formData, stock_quantity: parseInt(e.target.value) || 0 })}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-gray-800"
+                placeholder="0"
+                min="0"
+              />
+            </div>
           </div>
 
           <div className="flex items-center justify-between mb-4 border-b pb-4">

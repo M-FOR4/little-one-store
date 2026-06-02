@@ -188,6 +188,19 @@ export default function NewProduct() {
               </select>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">كمية المخزون</label>
+              <input
+                type="number"
+                required
+                value={formData.stock_quantity}
+                onChange={(e) => setFormData({ ...formData, stock_quantity: parseInt(e.target.value) || 0 })}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-gray-800"
+                placeholder="0"
+                min="0"
+              />
+            </div>
+
             {formData.stock_status === 'out_of_stock' && (
               <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer border border-gray-200">
                 <input
