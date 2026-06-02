@@ -205,30 +205,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* WhatsApp CTA */}
-      <section className="py-28 bg-white overflow-hidden relative">
-        <div className="max-w-4xl mx-auto px-4 text-center space-y-12 animate-fade-in-up relative z-10">
-          <div className="inline-flex items-center justify-center w-24 h-24 bg-secondary/10 rounded-[2.5rem] transform -rotate-6">
-            <ShoppingBag className="text-secondary" size={48} />
-          </div>
-          <div className="space-y-6">
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground font-snaga">هل تود تصميم سرير مخصص؟</h2>
-            <p className="text-xl text-gray-500 leading-relaxed max-w-2xl mx-auto font-medium">
-              فريقنا جاهز لمساعدتكِ في اختيار الخامات، الألوان، والمقاسات التي تناسب طفلكِ وغرفتكم. تواصلي معنا مباشرة عبر الواتساب.
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-6">
-            <a href="https://wa.me/218911234567" className="w-full sm:w-auto bg-emerald-400 hover:bg-emerald-500 text-white px-16 py-6 rounded-[2.5rem] font-bold text-2xl transition-all flex items-center justify-center gap-4 group">
-              تواصلي معنا الآن
-              <ArrowLeft className="group-hover:-translate-x-2 transition-transform" size={24} />
-            </a>
-          </div>
-        </div>
 
-        {/* Background decorative shapes */}
-        <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-secondary/5 rounded-full blur-3xl" />
-      </section>
     </div>
   );
 }
