@@ -18,22 +18,39 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await fetch('/api/products?featured=true');
-        const data = await res.json();
-        if (res.ok) {
-          setProducts(data.products || []);
-        }
-
         const supabase = createClient();
-        const { data: featuresData } = await supabase
-          .from('store_features')
-          .select('*')
-          .eq('is_active', true)
-          .order('sort_order', { ascending: true });
 
-        if (featuresData) {
-          setFeatures(featuresData);
+        // Fetch products and store features in parallel to eliminate waterfalls
+        const [productsRes, featuresRes] = await Promise.all([
+          supabase
+            .from('products')
+            .select('*')
+            .eq('is_active', true)
+            .eq('is_featured', true)
+            .order('created_at', { ascending: false })
+            .limit(4),
+          supabase
+            .from('store_features')
+            .select('*')
+            .eq('is_active', true)
+            .order('sort_order', { ascending: true })
+        ]);
+
+        let fetchedProducts = productsRes.data || [];
+
+        // Fallback: If no featured products, get 4 newest
+        if (fetchedProducts.length === 0) {
+          const { data: fallback } = await supabase
+            .from('products')
+            .select('*')
+            .eq('is_active', true)
+            .order('created_at', { ascending: false })
+            .limit(4);
+          fetchedProducts = fallback || [];
         }
+
+        setProducts(fetchedProducts);
+        setFeatures(featuresRes.data || []);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {

@@ -16,6 +16,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeAdmins, setActiveAdmins] = useState<{ id: string; user: string; isMe: boolean }[]>([]);
 
   const navigation = [
     { name: "الرئيسية", href: "/admin", icon: LayoutDashboard },
@@ -38,6 +39,56 @@ export default function DashboardLayout({
       setUser(JSON.parse(userJson));
     }
   }, [router]);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const supabase = createClient();
+    const sessionId = Math.random().toString(36).substring(2, 9);
+    const username = user.full_name || "Admin";
+
+    const room = supabase.channel("admin-presence", {
+      config: {
+        presence: {
+          key: username,
+        },
+      },
+    });
+
+    room
+      .on("presence", { event: "sync" }, () => {
+        const state = room.presenceState<any>();
+        const activeList: { id: string; user: string; isMe: boolean }[] = [];
+
+        Object.keys(state).forEach((userKey) => {
+          activeList.push({
+            id: userKey,
+            user: userKey,
+            isMe: userKey === username,
+          });
+        });
+
+        activeList.sort((a, b) => {
+          if (a.isMe) return -1;
+          if (b.isMe) return 1;
+          return a.user.localeCompare(b.user);
+        });
+
+        setActiveAdmins(activeList);
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await room.track({
+            sessionId: sessionId,
+            onlineAt: new Date().toISOString(),
+          });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(room);
+    };
+  }, [user]);
 
   const handleLogout = async () => {
     localStorage.removeItem("admin_user");
@@ -133,6 +184,60 @@ export default function DashboardLayout({
             </h2>
           </div>
           <div className="flex items-center gap-3 md:gap-4">
+            {/* Active admins indicator */}
+            {activeAdmins.length > 0 && (
+              <div className="flex items-center gap-2 border-l border-gray-200 pl-3 md:pl-4 mr-2">
+                {/* Active admin names display inline on desktop */}
+                <div className="hidden lg:flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-gray-400 flex items-center gap-1">
+                    <Users size={14} />
+                    المتصلون الآن:
+                  </span>
+                  {activeAdmins.slice(0, 3).map((admin) => (
+                    <span 
+                      key={admin.id} 
+                      className={`text-xs px-2.5 py-1 rounded-full border font-semibold flex items-center gap-1.5 shadow-sm transition-all ${
+                        admin.isMe 
+                          ? "bg-amber-50 text-amber-700 border-amber-200/60" 
+                          : "bg-emerald-50 text-emerald-700 border-emerald-200/60"
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${admin.isMe ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`} />
+                      {admin.user}
+                      {admin.isMe && " (أنت)"}
+                    </span>
+                  ))}
+                  {activeAdmins.length > 3 && (
+                    <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600 border border-gray-200 font-bold">
+                      +{activeAdmins.length - 3}
+                    </span>
+                  )}
+                </div>
+
+                {/* Stacked mini-avatars or a small online badge for mobile/tablet */}
+                <div className="flex items-center -space-x-1.5 lg:hidden">
+                  {activeAdmins.slice(0, 3).map((admin) => (
+                    <div
+                      key={admin.id}
+                      title={admin.isMe ? `${admin.user} (أنت)` : admin.user}
+                      className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs ring-2 ring-white shrink-0 ${
+                        admin.isMe
+                          ? "bg-gradient-to-tr from-amber-500 to-yellow-400"
+                          : "bg-gradient-to-tr from-emerald-500 to-teal-400"
+                      }`}
+                    >
+                      {admin.user.charAt(0).toUpperCase()}
+                    </div>
+                  ))}
+                  {activeAdmins.length > 3 && (
+                    <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-600 ring-2 ring-white">
+                      +{activeAdmins.length - 3}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-col items-end hidden sm:flex">
               <span className="text-sm font-bold text-gray-800">{user.full_name}</span>
               <span className="text-xs text-gray-400">{user.role === 'admin' ? 'مدير' : 'مستخدم'}</span>

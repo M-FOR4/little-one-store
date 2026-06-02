@@ -15,6 +15,7 @@ import {
   Check
 } from "lucide-react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -36,13 +37,22 @@ export default function ProductsPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await fetch('/api/products?categories=true');
-        const data = await res.json();
+        const supabase = createClient();
 
-        if (res.ok) {
-          setProducts(data.products || []);
-          setCategories(data.categories || []);
-        }
+        // Fetch products and categories in parallel directly from Supabase
+        const [productsRes, categoriesRes] = await Promise.all([
+          supabase
+            .from("products")
+            .select("*")
+            .eq("is_active", true)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("categories")
+            .select("*")
+        ]);
+
+        setProducts(productsRes.data || []);
+        setCategories(categoriesRes.data || []);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
