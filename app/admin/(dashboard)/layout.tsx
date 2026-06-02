@@ -42,7 +42,7 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (!user) return;
-    
+
     const supabase = createClient();
     const sessionId = Math.random().toString(36).substring(2, 9);
     const username = user.full_name || "Admin";
@@ -194,13 +194,12 @@ export default function DashboardLayout({
                     المتصلون الآن:
                   </span>
                   {activeAdmins.slice(0, 3).map((admin) => (
-                    <span 
-                      key={admin.id} 
-                      className={`text-xs px-2.5 py-1 rounded-full border font-semibold flex items-center gap-1.5 shadow-sm transition-all ${
-                        admin.isMe 
-                          ? "bg-amber-50 text-amber-700 border-amber-200/60" 
+                    <span
+                      key={admin.id}
+                      className={`text-xs px-2.5 py-1 rounded-full border font-semibold flex items-center gap-1.5 shadow-sm transition-all ${admin.isMe
+                          ? "bg-amber-50 text-amber-700 border-amber-200/60"
                           : "bg-emerald-50 text-emerald-700 border-emerald-200/60"
-                      }`}
+                        }`}
                     >
                       <span className={`w-1.5 h-1.5 rounded-full ${admin.isMe ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`} />
                       {admin.user}
@@ -220,11 +219,10 @@ export default function DashboardLayout({
                     <div
                       key={admin.id}
                       title={admin.isMe ? `${admin.user} (أنت)` : admin.user}
-                      className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs ring-2 ring-white shrink-0 ${
-                        admin.isMe
+                      className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs ring-2 ring-white shrink-0 ${admin.isMe
                           ? "bg-gradient-to-tr from-amber-500 to-yellow-400"
                           : "bg-gradient-to-tr from-emerald-500 to-teal-400"
-                      }`}
+                        }`}
                     >
                       {admin.user.charAt(0).toUpperCase()}
                     </div>

@@ -1,29 +1,65 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase";
+
+const DEFAULT_ABOUT = {
+  heading: "عن Little One",
+  description:
+    "في Little One، نؤمن أن نوم طفلك هو أساس راحته ونموه السليم. بدأنا رحلتنا بشغف لتوفير أسرّة أطفال تجمع بين الأناقة العصرية، الراحة الفائقة، والأمان التام.",
+  image_url: "/hero-image.jpg",
+  stat1_value: "100%",
+  stat1_label: "مواد طبيعية وآمنة",
+  stat2_value: "+500",
+  stat2_label: "عميل سعيد في ليبيا",
+};
+
 export default function AboutPage() {
+  const [about, setAbout] = useState(DEFAULT_ABOUT);
+
+  useEffect(() => {
+    async function fetchAbout() {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from("homepage_content")
+          .select("content")
+          .eq("section", "about")
+          .maybeSingle();
+        if (data?.content) {
+          setAbout((prev) => ({ ...prev, ...data.content }));
+        }
+      } catch (e) {
+        // Fallback to defaults silently
+      }
+    }
+    fetchAbout();
+  }, []);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-20">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         <div className="space-y-8 animate-fade-in-up">
           <h1 className="text-5xl font-bold text-[#333] leading-tight">
-            عن <span className="text-[#537D84]">Little One</span>
+            {about.heading.replace("Little One", "")}
+            <span className="text-[#537D84]">Little One</span>
           </h1>
-          <p className="text-xl text-gray-500 leading-relaxed">
-            في Little One، نؤمن أن نوم طفلك هو أساس راحته ونموه السليم. بدأنا رحلتنا بشغف لتوفير أسرّة أطفال تجمع بين الأناقة العصرية، الراحة الفائقة، والأمان التام.
-          </p>
+          <p className="text-xl text-gray-500 leading-relaxed">{about.description}</p>
           <div className="grid grid-cols-2 gap-8">
             <div className="space-y-2">
-              <span className="text-4xl font-bold text-[#537D84]">100%</span>
-              <p className="text-sm text-gray-400 font-bold">مواد طبيعية وآمنة</p>
+              <span className="text-4xl font-bold text-[#537D84]">{about.stat1_value}</span>
+              <p className="text-sm text-gray-400 font-bold">{about.stat1_label}</p>
             </div>
             <div className="space-y-2">
-              <span className="text-4xl font-bold text-[#537D84]">+500</span>
-              <p className="text-sm text-gray-400 font-bold">عميل سعيد في ليبيا</p>
+              <span className="text-4xl font-bold text-[#537D84]">{about.stat2_value}</span>
+              <p className="text-sm text-gray-400 font-bold">{about.stat2_label}</p>
             </div>
           </div>
         </div>
         <div className="relative aspect-square rounded-[4rem] overflow-hidden shadow-2xl">
-          <img 
-            src="/hero-image.jpg" 
-            alt="About Little One" 
+          <img
+            src={about.image_url}
+            alt="About Little One"
             className="w-full h-full object-cover"
           />
         </div>

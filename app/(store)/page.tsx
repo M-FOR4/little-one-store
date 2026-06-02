@@ -7,33 +7,64 @@ import {
   Sparkles, Star, Heart, Shield, CheckCircle, Truck, Award, ThumbsUp, Clock
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { createClient } from "@/lib/supabase";
+
+// القيم الافتراضية — تُستخدم إذا لم تُحفظ أي بيانات في قاعدة البيانات
+const DEFAULT_HERO = {
+  badge: "مجموعة ٢٠٢٦",
+  title_line1: "كل طفل يستحق",
+  title_line2: "بداية هادئة.",
+  description: "أسرّة ومهود مصنوعة بعناية فائقة من خامات طبيعية آمنة، لتحتضن أجمل لحظات عامكم الأول معاً.",
+  image_url: "/images/bed1.jpg",
+  cta_primary: "تسوّقي المجموعة",
+  cta_secondary: "قصتنا",
+};
+
+const DEFAULT_BANNER = {
+  title_line1: "أول نوم لطفلك...",
+  title_line2: "هـو أول إحساس بالأمان.",
+  description:
+    "بدأنا Little One لنوفر للأمهات في ليبيا خيارات تجمع بين الجمال الأوروبي والمتانة المحلية. نحن ندرك أهمية تلك اللحظات الأولى، ولذا نصمم أسرّتنا لتكون الملاذ الأكثر أماناً لطفلك.",
+  image_url: "/images/bed2.jpg",
+  cta_text: "اقرأ قصتنا كاملة",
+};
 
 export default function Home() {
   const [products, setProducts] = useState<any[]>([]);
   const [features, setFeatures] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hero, setHero] = useState(DEFAULT_HERO);
+  const [banner, setBanner] = useState(DEFAULT_BANNER);
 
   useEffect(() => {
     async function fetchData() {
       try {
         const supabase = createClient();
 
-        // Fetch products and store features in parallel to eliminate waterfalls
-        const [productsRes, featuresRes] = await Promise.all([
+        // Fetch products, features, and homepage content in parallel
+        const [productsRes, featuresRes, heroRes, bannerRes] = await Promise.all([
           supabase
-            .from('products')
-            .select('*')
-            .eq('is_active', true)
-            .eq('is_featured', true)
-            .order('created_at', { ascending: false })
+            .from("products")
+            .select("*")
+            .eq("is_active", true)
+            .eq("is_featured", true)
+            .order("created_at", { ascending: false })
             .limit(4),
           supabase
-            .from('store_features')
-            .select('*')
-            .eq('is_active', true)
-            .order('sort_order', { ascending: true })
+            .from("store_features")
+            .select("*")
+            .eq("is_active", true)
+            .order("sort_order", { ascending: true }),
+          supabase
+            .from("homepage_content")
+            .select("content")
+            .eq("section", "hero")
+            .maybeSingle(),
+          supabase
+            .from("homepage_content")
+            .select("content")
+            .eq("section", "banner")
+            .maybeSingle(),
         ]);
 
         let fetchedProducts = productsRes.data || [];
@@ -41,16 +72,24 @@ export default function Home() {
         // Fallback: If no featured products, get 4 newest
         if (fetchedProducts.length === 0) {
           const { data: fallback } = await supabase
-            .from('products')
-            .select('*')
-            .eq('is_active', true)
-            .order('created_at', { ascending: false })
+            .from("products")
+            .select("*")
+            .eq("is_active", true)
+            .order("created_at", { ascending: false })
             .limit(4);
           fetchedProducts = fallback || [];
         }
 
         setProducts(fetchedProducts);
         setFeatures(featuresRes.data || []);
+
+        // Merge DB content with defaults (fallback gracefully)
+        if (heroRes.data?.content) {
+          setHero((prev) => ({ ...prev, ...heroRes.data.content }));
+        }
+        if (bannerRes.data?.content) {
+          setBanner((prev) => ({ ...prev, ...bannerRes.data.content }));
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -66,24 +105,24 @@ export default function Home() {
       <section className="relative min-h-[90vh] flex items-center pt-20 pb-24 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-8 text-center lg:text-right">
-            <p className="text-xs tracking-[0.3em] text-primary mb-6 animate-fade-in-up">مجموعة ٢٠٢٦</p>
+            <p className="text-xs tracking-[0.3em] text-primary mb-6 animate-fade-in-up">{hero.badge}</p>
 
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-foreground leading-[1.15] font-snaga animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-              كل طفل يستحق <br />
-              <span className="text-primary">بداية هادئة.</span>
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-foreground leading-[1.15] font-snaga animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+              {hero.title_line1} <br />
+              <span className="text-primary">{hero.title_line2}</span>
             </h1>
 
-            <p className="mt-8 text-lg md:text-xl text-gray-600 leading-relaxed max-w-xl mx-auto lg:mr-0 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-              أسرّة ومهود مصنوعة بعناية فائقة من خامات طبيعية آمنة، لتحتضن أجمل لحظات عامكم الأول معاً.
+            <p className="mt-8 text-lg md:text-xl text-gray-600 leading-relaxed max-w-xl mx-auto lg:mr-0 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
+              {hero.description}
             </p>
 
-            <div className="mt-10 flex flex-wrap items-center justify-center lg:justify-start gap-6 pt-6 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+            <div className="mt-10 flex flex-wrap items-center justify-center lg:justify-start gap-6 pt-6 animate-fade-in-up" style={{ animationDelay: "300ms" }}>
               <Link href="/products" className="inline-flex items-center gap-3 bg-primary hover:bg-foreground text-white px-8 py-4 rounded-full text-sm font-bold transition-colors duration-500">
-                تسوّقي المجموعة
+                {hero.cta_primary}
                 <ArrowLeft className="h-4 w-4" strokeWidth={2} />
               </Link>
               <Link href="/about" className="text-sm font-bold text-foreground border-b border-foreground/30 hover:border-primary hover:text-primary pb-0.5 transition-colors">
-                قصتنا
+                {hero.cta_secondary}
               </Link>
             </div>
           </div>
@@ -91,7 +130,7 @@ export default function Home() {
           <div className="animate-fade-in-slow">
             <div className="relative aspect-[5/6] lg:aspect-[6/7] rounded-[2.5rem] overflow-hidden bg-secondary">
               <img
-                src="/images/bed1.jpg"
+                src={hero.image_url}
                 alt="سرير أطفال ليتل ون"
                 className="h-full w-full object-cover"
               />
@@ -111,7 +150,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 stagger-children">
             {features.map((feature, idx) => {
               const ICON_MAP: Record<string, any> = {
-                Sparkles, CheckCircle, Shield, Heart, Star, Truck, Award, ThumbsUp, Clock
+                Sparkles, CheckCircle, Shield, Heart, Star, Truck, Award, ThumbsUp, Clock,
               };
               const FeatureIcon = ICON_MAP[feature.icon] || Heart;
 
@@ -194,35 +233,33 @@ export default function Home() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10 w-full py-16">
               <div className="space-y-10 text-center lg:text-right order-2 lg:order-1">
                 <h2 className="text-4xl md:text-6xl font-bold font-snaga leading-tight">
-                  أول نوم لطفلك... <br />
-                  هـو أول إحساس بالأمان.
+                  {banner.title_line1} <br />
+                  {banner.title_line2}
                 </h2>
                 <p className="text-xl text-white/80 leading-relaxed max-w-xl mx-auto lg:mr-0">
-                  بدأنا Little One لنوفر للأمهات في ليبيا خيارات تجمع بين الجمال الأوروبي والمتانة المحلية. نحن ندرك أهمية تلك اللحظات الأولى، ولذا نصمم أسرّتنا لتكون الملاذ الأكثر أماناً لطفلك.
+                  {banner.description}
                 </p>
                 <Link href="/about" className="inline-block bg-white text-primary hover:bg-gray-100 px-12 py-5 rounded-3xl font-bold text-xl transition-all shadow-xl shadow-black/10 transform hover:scale-105 active:scale-95">
-                  اقرأ قصتنا كاملة
+                  {banner.cta_text}
                 </Link>
               </div>
 
               <div className="relative h-full flex justify-center items-center order-1 lg:order-2">
                 <div className="w-full max-w-md aspect-square rounded-[4rem] overflow-hidden shadow-2xl rotate-3 group-hover:rotate-0 transition-transform duration-1000 border-8 border-white/20">
                   <img
-                    src="/images/bed2.jpg"
+                    src={banner.image_url}
                     alt="قصة ليتل ون"
                     className="w-full h-full object-cover scale-110 group-hover:scale-100 transition-transform duration-1000"
                   />
                 </div>
                 {/* Float accents */}
                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-secondary rounded-full blur-2xl opacity-50 animate-pulse" />
-                <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/20 rounded-full blur-2xl opacity-50 animate-pulse" style={{ animationDelay: '1s' }} />
+                <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/20 rounded-full blur-2xl opacity-50 animate-pulse" style={{ animationDelay: "1s" }} />
               </div>
             </div>
           </div>
         </div>
       </section>
-
-
     </div>
   );
 }
