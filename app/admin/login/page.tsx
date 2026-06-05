@@ -16,29 +16,23 @@ export default function AdminLogin() {
     setLoading(true);
     setError(null);
 
-    const supabase = createClient();
-    
     try {
-      const { data, error: fetchError } = await supabase
-        .from("admin_accounts")
-        .select("*")
-        .eq("username", email) // Using the email field as username
-        .eq("password", password)
-        .single();
+      const res = await fetch("/api/admin/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: email, password })
+      });
 
-      if (fetchError || !data) {
-        setError("اسم المستخدم أو كلمة المرور غير صحيحة");
+      const json = await res.json();
+
+      if (!res.ok) {
+        setError(json.error || "اسم المستخدم أو كلمة المرور غير صحيحة");
         setLoading(false);
         return;
       }
 
-      // Store user session info
-      localStorage.setItem("admin_user", JSON.stringify({
-        id: data.id,
-        username: data.username,
-        full_name: data.full_name,
-        role: data.role
-      }));
+      // Store user session info for UI purposes
+      localStorage.setItem("admin_user", JSON.stringify(json.user));
 
       router.push("/admin");
     } catch (err) {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, PackagePlus, Settings, ShoppingBag, LogOut, Package, Users, MapPin, Menu, X, Sparkles, LineChart, Ticket } from "lucide-react";
+import { LayoutDashboard, PackagePlus, Settings, ShoppingBag, LogOut, Package, Users, MapPin, Menu, X, Sparkles, LineChart, Ticket, Layout } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { SaveProgressProvider } from "@/components/admin/SaveProgressContext";
 
@@ -28,16 +28,41 @@ export default function DashboardLayout({
     { name: "مدن الشحن", href: "/admin/shipping", icon: MapPin },
     { name: "المميزات", href: "/admin/features", icon: Sparkles },
     { name: "قائمة الانتظار", href: "/admin/waitlist", icon: Users },
+    { name: "إدارة المحتوى", href: "/admin/content", icon: Layout },
     { name: "الإعدادات", href: "/admin/settings", icon: Settings },
   ];
 
   useEffect(() => {
-    const userJson = localStorage.getItem("admin_user");
-    if (!userJson) {
-      router.push("/admin/login");
-    } else {
-      setUser(JSON.parse(userJson));
+    const checkSession = () => {
+      const userJson = localStorage.getItem("admin_user");
+      if (!userJson) {
+        router.push("/admin/login");
+        return null;
+      }
+
+      const userData = JSON.parse(userJson);
+      const sessionAge = Date.now() - (userData.loginAt || 0);
+      const THIRTY_MINUTES = 15 * 60 * 1000;
+
+      if (sessionAge > THIRTY_MINUTES) {
+        localStorage.removeItem("admin_user");
+        router.push("/admin/login");
+        return null;
+      }
+      return userData;
+    };
+
+    const validUser = checkSession();
+    if (validUser) {
+      setUser(validUser);
     }
+
+    // Check periodically every minute
+    const intervalId = setInterval(() => {
+      checkSession();
+    }, 60 * 1000);
+
+    return () => clearInterval(intervalId);
   }, [router]);
 
   useEffect(() => {
@@ -91,6 +116,7 @@ export default function DashboardLayout({
   }, [user]);
 
   const handleLogout = async () => {
+    await fetch("/api/admin/auth/logout", { method: "POST" });
     localStorage.removeItem("admin_user");
     router.push("/admin/login");
   };
@@ -197,8 +223,8 @@ export default function DashboardLayout({
                     <span
                       key={admin.id}
                       className={`text-xs px-2.5 py-1 rounded-full border font-semibold flex items-center gap-1.5 shadow-sm transition-all ${admin.isMe
-                          ? "bg-amber-50 text-amber-700 border-amber-200/60"
-                          : "bg-emerald-50 text-emerald-700 border-emerald-200/60"
+                        ? "bg-amber-50 text-amber-700 border-amber-200/60"
+                        : "bg-emerald-50 text-emerald-700 border-emerald-200/60"
                         }`}
                     >
                       <span className={`w-1.5 h-1.5 rounded-full ${admin.isMe ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`} />
@@ -220,8 +246,8 @@ export default function DashboardLayout({
                       key={admin.id}
                       title={admin.isMe ? `${admin.user} (أنت)` : admin.user}
                       className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs ring-2 ring-white shrink-0 ${admin.isMe
-                          ? "bg-gradient-to-tr from-amber-500 to-yellow-400"
-                          : "bg-gradient-to-tr from-emerald-500 to-teal-400"
+                        ? "bg-gradient-to-tr from-amber-500 to-yellow-400"
+                        : "bg-gradient-to-tr from-emerald-500 to-teal-400"
                         }`}
                     >
                       {admin.user.charAt(0).toUpperCase()}

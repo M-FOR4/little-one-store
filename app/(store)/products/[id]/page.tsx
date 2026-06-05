@@ -261,61 +261,61 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
             {!isOutOfStock ? (
               <>
                 <div className="space-y-4">
-                {/* Quantity selector */}
-                <div className="flex items-center justify-between bg-[#FDFBF9] p-4 rounded-2xl border border-gray-100">
-                  <span className="font-bold text-gray-700 text-sm">الكمية المطلوبة</span>
-                  <div className="flex items-center bg-white border border-gray-200 rounded-xl px-2 py-1">
+                  {/* Quantity selector */}
+                  <div className="flex items-center justify-between bg-[#FDFBF9] p-4 rounded-2xl border border-gray-100">
+                    <span className="font-bold text-gray-700 text-sm">الكمية المطلوبة</span>
+                    <div className="flex items-center bg-white border border-gray-200 rounded-xl px-2 py-1">
+                      <button
+                        onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                        className="p-1.5 text-gray-400 hover:text-primary transition-colors active:scale-90"
+                      >
+                        <Minus size={18} />
+                      </button>
+                      <span className="w-10 text-center font-bold text-lg text-foreground">{quantity}</span>
+                      <button
+                        onClick={() => setQuantity(q => q + 1)}
+                        className="p-1.5 text-gray-400 hover:text-primary transition-colors active:scale-90"
+                      >
+                        <Plus size={18} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Actions: Buy Now (large) and Add to Cart (icon only) */}
+                  <div className="flex items-center gap-4">
+                    {/* Buy Now Button (Large) */}
                     <button
-                      onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                      className="p-1.5 text-gray-400 hover:text-primary transition-colors active:scale-90"
+                      onClick={handleBuyNow}
+                      disabled={adding}
+                      className="flex-1 bg-primary hover:bg-primary-dark text-white h-16 rounded-[1.5rem] font-bold text-lg shadow-xl shadow-primary/20 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-70 group"
                     >
-                      <Minus size={18} />
+                      <CheckCircle size={22} className="group-hover:scale-110 transition-transform" />
+                      <span>الشراء الفوري</span>
                     </button>
-                    <span className="w-10 text-center font-bold text-lg text-foreground">{quantity}</span>
+
+                    {/* Add to Cart Button (Small, Icon-only) */}
                     <button
-                      onClick={() => setQuantity(q => q + 1)}
-                      className="p-1.5 text-gray-400 hover:text-primary transition-colors active:scale-90"
+                      onClick={handleAddToCart}
+                      disabled={adding}
+                      title="إضافة إلى السلة"
+                      className="w-16 h-16 bg-secondary text-primary hover:bg-secondary-dark/20 border border-secondary-dark/20 rounded-[1.5rem] flex items-center justify-center transition-all active:scale-95 disabled:opacity-70 flex-shrink-0 relative group"
                     >
-                      <Plus size={18} />
+                      {adding ? (
+                        <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                      ) : showSuccess ? (
+                        <Check size={24} className="text-emerald-600 animate-bounce" />
+                      ) : (
+                        <ShoppingBag size={24} className="group-hover:rotate-12 transition-transform" />
+                      )}
+
+                      {showSuccess && (
+                        <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-xs px-2.5 py-1 rounded-lg font-bold shadow-lg animate-fade-in-up whitespace-nowrap">
+                          تمت الإضافة!
+                        </span>
+                      )}
                     </button>
                   </div>
                 </div>
-
-                {/* Actions: Buy Now (large) and Add to Cart (icon only) */}
-                <div className="flex items-center gap-4">
-                  {/* Buy Now Button (Large) */}
-                  <button
-                    onClick={handleBuyNow}
-                    disabled={adding}
-                    className="flex-1 bg-primary hover:bg-primary-dark text-white h-16 rounded-[1.5rem] font-bold text-lg shadow-xl shadow-primary/20 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-70 group"
-                  >
-                    <CheckCircle size={22} className="group-hover:scale-110 transition-transform" />
-                    <span>الشراء الفوري</span>
-                  </button>
-
-                  {/* Add to Cart Button (Small, Icon-only) */}
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={adding}
-                    title="إضافة إلى السلة"
-                    className="w-16 h-16 bg-secondary text-primary hover:bg-secondary-dark/20 border border-secondary-dark/20 rounded-[1.5rem] flex items-center justify-center transition-all active:scale-95 disabled:opacity-70 flex-shrink-0 relative group"
-                  >
-                    {adding ? (
-                      <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                    ) : showSuccess ? (
-                      <Check size={24} className="text-emerald-600 animate-bounce" />
-                    ) : (
-                      <ShoppingBag size={24} className="group-hover:rotate-12 transition-transform" />
-                    )}
-
-                    {showSuccess && (
-                      <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-xs px-2.5 py-1 rounded-lg font-bold shadow-lg animate-fade-in-up whitespace-nowrap">
-                        تمت الإضافة!
-                      </span>
-                    )}
-                  </button>
-                </div>
-              </div>
 
                 {benefits.length > 0 && (
                   <div className="grid grid-cols-2 gap-4">

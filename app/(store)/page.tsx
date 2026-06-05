@@ -1,15 +1,15 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import { ProductCard } from "@/components/ProductCard";
 import {
   ArrowLeft, ShoppingBag,
   Sparkles, Star, Heart, Shield, CheckCircle, Truck, Award, ThumbsUp, Clock
 } from "lucide-react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
-// القيم الافتراضية — تُستخدم إذا لم تُحفظ أي بيانات في قاعدة البيانات
+// ISR: regenerate at most every 60s, or immediately when admin triggers /api/admin/revalidate
+export const revalidate = 60;
+
+// القيم الافتراضية — تُسخدم إذا لم تُحفظ أي بيانات في قاعدة البيانات
 const DEFAULT_HERO = {
   badge: "مجموعة ٢٠٢٦",
   title_line1: "كل طفل يستحق",
@@ -29,73 +29,57 @@ const DEFAULT_BANNER = {
   cta_text: "اقرأ قصتنا كاملة",
 };
 
-export default function Home() {
-  const [products, setProducts] = useState<any[]>([]);
-  const [features, setFeatures] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [hero, setHero] = useState(DEFAULT_HERO);
-  const [banner, setBanner] = useState(DEFAULT_BANNER);
+export default async function Home() {
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { global: { fetch: (url, opts = {}) => fetch(url, { ...opts, next: { revalidate: 60 } }) } }
+  );
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const supabase = createClient();
+  // Fetch products, features, and homepage content in parallel on the server
+  const [productsRes, featuresRes, heroRes, bannerRes] = await Promise.all([
+    supabase
+      .from("products")
+      .select("*")
+      .eq("is_active", true)
+      .eq("is_featured", true)
+      .order("created_at", { ascending: false })
+      .limit(4),
+    supabase
+      .from("store_features")
+      .select("*")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("homepage_content")
+      .select("content")
+      .eq("section", "hero")
+      .maybeSingle(),
+    supabase
+      .from("homepage_content")
+      .select("content")
+      .eq("section", "banner")
+      .maybeSingle(),
+  ]);
 
-        // Fetch products, features, and homepage content in parallel
-        const [productsRes, featuresRes, heroRes, bannerRes] = await Promise.all([
-          supabase
-            .from("products")
-            .select("*")
-            .eq("is_active", true)
-            .eq("is_featured", true)
-            .order("created_at", { ascending: false })
-            .limit(4),
-          supabase
-            .from("store_features")
-            .select("*")
-            .eq("is_active", true)
-            .order("sort_order", { ascending: true }),
-          supabase
-            .from("homepage_content")
-            .select("content")
-            .eq("section", "hero")
-            .maybeSingle(),
-          supabase
-            .from("homepage_content")
-            .select("content")
-            .eq("section", "banner")
-            .maybeSingle(),
-        ]);
+  let products = productsRes.data || [];
 
-        let fetchedProducts = productsRes.data || [];
+  // Fallback: If no featured products, get 4 newest
+  if (products.length === 0) {
+    const { data: fallback } = await supabase
+      .from("products")
+      .select("*")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(4);
+    products = fallback || [];
+  }
 
-        // Fallback: If no featured products, get 4 newest
-        if (fetchedProducts.length === 0) {
-          const { data: fallback } = await supabase
-            .from("products")
-            .select("*")
-            .eq("is_active", true)
-            .order("created_at", { ascending: false })
-            .limit(4);
-          fetchedProducts = fallback || [];
-        }
+  const features = featuresRes.data || [];
 
-        setProducts(fetchedProducts);
-        setFeatures(featuresRes.data || []);
-
-        // Merge DB content with defaults (fallback gracefully)
-        const heroData = heroRes.data?.content;
-        const bannerData = bannerRes.data?.content;
-        if (heroData) setHero((prev) => ({ ...prev, ...(heroData as any) }));
-        if (bannerData) setBanner((prev) => ({ ...prev, ...(bannerData as any) }));
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
+  // Merge DB content with defaults (fallback gracefully)
+  const hero = { ...DEFAULT_HERO, ...(heroRes.data?.content as any) };
+  const banner = { ...DEFAULT_BANNER, ...(bannerRes.data?.content as any) };
 
   return (
     <div className="flex flex-col animate-fade-in">
@@ -163,7 +147,7 @@ export default function Home() {
               );
             })}
 
-            {features.length === 0 && !loading && (
+            {features.length === 0 && (
               <div className="col-span-1 md:col-span-3 text-center text-gray-400 py-10">
                 <p>تتم إعداد المميزات...</p>
               </div>
@@ -186,17 +170,7 @@ export default function Home() {
             </Link>
           </div>
 
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="animate-pulse space-y-4">
-                  <div className="bg-gray-200 aspect-[3/4] rounded-[4rem]" />
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto" />
-                  <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto" />
-                </div>
-              ))}
-            </div>
-          ) : products.length > 0 ? (
+          {products.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
               {products.map((product) => (
                 <div key={product.id} className="animate-fade-in-up">

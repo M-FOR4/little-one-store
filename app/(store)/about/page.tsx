@@ -1,8 +1,7 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase";
 import { Shield, Star, Truck, Heart, CheckCircle, Award, ThumbsUp, Clock, Sparkles } from "lucide-react";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+
+export const revalidate = 60; // ISR: regenerate every 60s or on-demand via /api/admin/revalidate
 
 const ICON_MAP: Record<string, any> = {
   Shield, Star, Truck, Heart, CheckCircle, Award, ThumbsUp, Clock, Sparkles,
@@ -25,31 +24,27 @@ const DEFAULT_FEATURES = [
   { icon: "Truck", title: "توصيل سريع", description: "خدمة توصيل موثوقة لجميع المدن الليبية مع عناية خاصة بالمنتج." },
 ];
 
-export default function AboutPage() {
-  const [about, setAbout] = useState(DEFAULT_ABOUT);
-  const [features, setFeatures] = useState(DEFAULT_FEATURES);
+export default async function AboutPage() {
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { global: { fetch: (url, opts = {}) => fetch(url, { ...opts, next: { revalidate: 60 } }) } }
+  );
 
-  useEffect(() => {
-    async function fetchAbout() {
-      try {
-        const supabase = createClient();
-        const [aboutRes, featuresRes] = await Promise.all([
-          supabase.from("homepage_content").select("content").eq("section", "about").maybeSingle(),
-          supabase.from("homepage_content").select("content").eq("section", "about_features").maybeSingle(),
-        ]);
-        if (aboutRes.data?.content) {
-          setAbout((prev) => ({ ...prev, ...(aboutRes.data!.content as any) }));
-        }
-        if (featuresRes.data?.content) {
-          const loaded = (featuresRes.data!.content as any).features;
-          if (Array.isArray(loaded) && loaded.length > 0) setFeatures(loaded);
-        }
-      } catch (e) {
-        // Fallback to defaults silently
-      }
+  const [aboutRes, featuresRes] = await Promise.all([
+    supabase.from("homepage_content").select("content").eq("section", "about").maybeSingle(),
+    supabase.from("homepage_content").select("content").eq("section", "about_features").maybeSingle(),
+  ]);
+
+  const about = { ...DEFAULT_ABOUT, ...(aboutRes.data?.content as any) };
+
+  let features = DEFAULT_FEATURES;
+  if (featuresRes.data?.content) {
+    const loaded = (featuresRes.data.content as any).features;
+    if (Array.isArray(loaded) && loaded.length > 0) {
+      features = loaded;
     }
-    fetchAbout();
-  }, []);
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-20">
@@ -58,9 +53,9 @@ export default function AboutPage() {
           <h1 className="text-5xl font-bold text-[#333] leading-tight">
             {about.heading.includes("Little One")
               ? <>
-                  {about.heading.replace("Little One", "").trim()}{" "}
-                  <span className="text-[#537D84]">Little One</span>
-                </>
+                {about.heading.replace("Little One", "").trim()}{" "}
+                <span className="text-[#537D84]">Little One</span>
+              </>
               : about.heading
             }
           </h1>

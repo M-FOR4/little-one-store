@@ -41,9 +41,12 @@ export default function NewProduct() {
     const savePromise = async () => {
       // 1. Upload Images via API
       const imageUrls: string[] = [];
-      for (const file of selectedFiles) {
+      for (const [i, file] of selectedFiles.entries()) {
+        const ext = file.name.split(".").pop() || "jpg";
         const uploadForm = new FormData();
         uploadForm.append("file", file);
+        uploadForm.append("bucket", "media");
+        uploadForm.append("path", `products/${Date.now()}-${i}.${ext}`);
 
         const uploadRes = await fetch("/api/admin/upload", {
           method: "POST",
@@ -51,7 +54,7 @@ export default function NewProduct() {
         });
         const uploadData = await uploadRes.json();
         if (!uploadRes.ok) throw new Error(uploadData.error || "خطأ في رفع الصورة");
-        imageUrls.push(uploadData.url);
+        imageUrls.push(uploadData.publicUrl);
       }
 
       // 2. Create Product via API

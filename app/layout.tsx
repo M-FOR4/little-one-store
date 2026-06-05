@@ -1,5 +1,6 @@
 import { Tajawal } from "next/font/google";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { Analytics } from "@/components/Analytics";
 import "./globals.css";
 
 const tajawal = Tajawal({
@@ -9,8 +10,23 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
-  title: "Little One",
-  description: "متجر سرائر أطفال في ليبيا",
+  title: {
+    template: "%s | Little One",
+    default: "Little One - متجر سرائر أطفال في ليبيا",
+  },
+  description: "متجر ليبي متخصص في صناعة وبيع سرائر غرف الأطفال الخشبية بجودة أمان عالية. تصاميم عصرية، راقية وبأسعار تنافسية تناسب الجميع.",
+  openGraph: {
+    title: "Little One - متجر سرائر أطفال في ليبيا",
+    description: "متجر ليبي متخصص في صناعة وبيع سرائر غرف الأطفال الخشبية بجودة أمان عالية.",
+    url: "https://little-one-store.com",
+    siteName: "Little One",
+    locale: "ar_LY",
+    type: "website",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#537D84",
 };
 
 export default function RootLayout({
@@ -25,7 +41,10 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        <Analytics />
+        {children}
+      </body>
     </html>
   );
 }

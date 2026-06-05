@@ -84,12 +84,13 @@ export const SaveProgressProvider: React.FC<{ children: React.ReactNode }> = ({
             setTimeout(() => {
                 removeTask(id);
             }, 5000);
-        } catch (error: any) {
+        } catch (err: unknown) {
             clearInterval(progressInterval);
+            const errorMessage = err instanceof Error ? err.message : "فشل الحفظ";
             setTasks((prev) =>
                 prev.map((t) =>
                     t.id === id
-                        ? { ...t, status: "error", error: error.message || "فشل الحفظ" }
+                        ? { ...t, status: "error", error: errorMessage }
                         : t
                 )
             );
@@ -105,10 +106,10 @@ export const SaveProgressProvider: React.FC<{ children: React.ReactNode }> = ({
                     <div
                         key={task.id}
                         className={`p-4 rounded-2xl shadow-xl border ${task.status === "saving"
-                                ? "bg-white border-blue-100"
-                                : task.status === "success"
-                                    ? "bg-green-50 border-green-100"
-                                    : "bg-red-50 border-red-100"
+                            ? "bg-white border-blue-100"
+                            : task.status === "success"
+                                ? "bg-green-50 border-green-100"
+                                : "bg-red-50 border-red-100"
                             } overflow-hidden relative transition-all animate-fade-in-up`}
                     >
                         {/* Progress bar background for active savings */}

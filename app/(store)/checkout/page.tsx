@@ -19,16 +19,28 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+interface City {
+  id: string;
+  name: string;
+  shipping_fee: number;
+}
+
+interface CouponInfo {
+  code: string;
+  discount_type: string;
+  discount_value: number;
+}
+
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart, totalItems } = useCart();
-  const [cities, setCities] = useState<any[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponInfo | null>(null);
   const [verifyingCoupon, setVerifyingCoupon] = useState(false);
   const [couponError, setCouponError] = useState("");
   const router = useRouter();
@@ -39,13 +51,13 @@ export default function CheckoutPage() {
     city_id: "",
     address: "",
   });
-  const [siteSettings, setSiteSettings] = useState<any>(null);
+  const [siteSettings, setSiteSettings] = useState<{ enable_coupons?: boolean } | null>(null);
 
   useEffect(() => {
     async function fetchData() {
       const supabase = createClient();
 
-      // Fetch Cities
+      // Fetch Cities (public read)
       const { data: citiesData } = await supabase
         .from('shipping_cities')
         .select('*')
@@ -54,7 +66,7 @@ export default function CheckoutPage() {
 
       if (citiesData) setCities(citiesData);
 
-      // Fetch Site Settings for Coupon Toggle
+      // Fetch Site Settings for Coupon Toggle (public read)
       const { data: settingsData } = await supabase
         .from('site_settings')
         .select('enable_coupons')
@@ -70,7 +82,7 @@ export default function CheckoutPage() {
   const selectedCity = cities.find(c => c.id === formData.city_id);
   const shippingFee = selectedCity ? selectedCity.shipping_fee : 0;
 
-  // Calculate Discount
+  // Calculate Discount (display only — real calculation done server-side)
   let discountAmount = 0;
   if (appliedCoupon) {
     if (appliedCoupon.discount_type === 'percentage') {
@@ -82,45 +94,39 @@ export default function CheckoutPage() {
 
   const grandTotal = totalPrice + shippingFee - discountAmount;
 
+  // Verify coupon via server-side API (#14 fix)
   const handleApplyCoupon = async () => {
     if (!couponCode) return;
     setVerifyingCoupon(true);
     setCouponError("");
-    const supabase = createClient();
 
     try {
-      const { data, error } = await supabase
-        .from('coupons')
-        .select('*')
-        .eq('code', couponCode.toUpperCase())
-        .eq('is_active', true)
-        .single();
+      const res = await fetch("/api/coupons/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: couponCode,
+          subtotal: totalPrice,
+        }),
+      });
 
-      if (error || !data) {
-        setCouponError("كود الخصم غير صحيح أو منتهي الصلاحية");
-        setAppliedCoupon(null);
+      const data = await res.json();
+
+      if (data.valid) {
+        setAppliedCoupon(data.coupon);
+        setCouponError("");
       } else {
-        // Check expiry
-        if (data.expiry_date && new Date(data.expiry_date) < new Date()) {
-          setCouponError("هذا الكود قد انتهت صلاحيته");
-          setAppliedCoupon(null);
-        }
-        // Check min amount
-        else if (totalPrice < (data.min_order_amount || 0)) {
-          setCouponError(`يجب أن يكون مجموع الطلب ${data.min_order_amount} د.ل أو أكثر لتفعيل هذا الكود`);
-          setAppliedCoupon(null);
-        } else {
-          setAppliedCoupon(data);
-          setCouponError("");
-        }
+        setCouponError(data.error || "كود الخصم غير صحيح");
+        setAppliedCoupon(null);
       }
-    } catch (err) {
+    } catch {
       setCouponError("حدث خطأ أثناء التحقق من الكود");
     } finally {
       setVerifyingCoupon(false);
     }
   };
 
+  // Submit order via server-side API (#11 fix)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (totalItems === 0) return;
@@ -135,52 +141,36 @@ export default function CheckoutPage() {
     }
 
     setSubmitting(true);
-    const supabase = createClient();
 
     try {
-      // 1. Create order
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           customer_name: formData.name,
           phone_number: formData.phone,
-          city: selectedCity.name,
+          city_id: formData.city_id,
           address: formData.address,
-          total_amount: grandTotal,
           coupon_code: appliedCoupon?.code || null,
-          discount_amount: discountAmount,
-          status: 'pending'
-        })
-        .select()
-        .single();
+          items: items.map(item => ({
+            product_id: item.id,
+            quantity: item.quantity,
+          })),
+        }),
+      });
 
-      if (orderError) throw orderError;
+      const data = await res.json();
 
-      // 2. Create order items
-      const orderItems = items.map(item => ({
-        order_id: order.id,
-        product_id: item.id,
-        quantity: item.quantity,
-        price_at_time_of_purchase: item.price
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-
-      if (itemsError) throw itemsError;
-
-      // 3. Update Coupon Usage if applied
-      if (appliedCoupon) {
-        await supabase.rpc('increment_coupon_usage', { coupon_id: appliedCoupon.id });
+      if (!res.ok) {
+        throw new Error(data.error || "حدث خطأ أثناء إتمام الطلب");
       }
 
-      // 4. Success
+      // Success
       setSuccess(true);
       clearCart();
-    } catch (err: any) {
-      console.error(err);
-      setError("حدث خطأ أثناء إتمام الطلب. يرجى المحاولة مرة أخرى.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "حدث خطأ أثناء إتمام الطلب";
+      setError(message);
     } finally {
       setSubmitting(false);
     }

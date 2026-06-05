@@ -57,13 +57,13 @@ export async function GET(request: Request) {
                 status: 200,
                 headers: {
                     "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
-                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Origin": process.env.NEXT_PUBLIC_SITE_URL || "",
                 },
             }
         );
-    } catch (error: any) {
+    } catch (error) {
         return NextResponse.json(
-            { error: error.message || "Failed to fetch products", products: [] },
+            { error: error instanceof Error ? error.message : "Failed to fetch products", products: [] },
             { status: 500 }
         );
     }
